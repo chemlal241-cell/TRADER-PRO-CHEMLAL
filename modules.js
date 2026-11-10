@@ -409,7 +409,18 @@ render();
   const list=$("investingNewsList");
   const shown=items.filter(x=>filter==="all"||x.category===filter);
   if(!shown.length){list.textContent=words().empty;return}
-  list.innerHTML=shown.map(x=>'<div style="padding:10px 0;border-bottom:1px solid #29313e"><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer" style="color:#f1d18a;font-weight:650;text-decoration:none">'+esc(x.title)+'</a><div class="module-muted" style="font-size:12px;margin-top:5px">'+esc(x.categoryLabel)+' · '+esc(x.published||"Date not provided")+' · Investing.com</div></div>').join("");
+  list.innerHTML=shown.map(x=>{
+   const level=["high","medium","low"].includes(x.severity)?x.severity:"low";
+   const colors={high:{bg:"#3b171b",fg:"#ff6b72",border:"#a8323c"},medium:{bg:"#3a2a12",fg:"#ffc45c",border:"#9a6b22"},low:{bg:"#123323",fg:"#64d995",border:"#26764a"}};
+   const c=colors[level];
+   const severityLabels={en:{high:"HIGH RISK",medium:"MEDIUM RISK",low:"LOW RISK"},ar:{high:"خطورة عالية",medium:"خطورة متوسطة",low:"خطورة منخفضة"},fr:{high:"RISQUE ÉLEVÉ",medium:"RISQUE MOYEN",low:"RISQUE FAIBLE"},es:{high:"RIESGO ALTO",medium:"RIESGO MEDIO",low:"RIESGO BAJO"}};
+   const lang=document.querySelector("#lang")?.value||"en";
+   const risk=(severityLabels[lang]||severityLabels.en)[level];
+   let when="Time unavailable";
+   if(x.published){const d=new Date(x.published);if(!Number.isNaN(d.getTime()))when=new Intl.DateTimeFormat(lang==="ar"?"ar-MA":"en-GB",{timeZone:"Africa/Casablanca",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(d)+" · Morocco time";}
+   else if(x.publishedRaw)when=x.publishedRaw+" · source time";
+   return '<div style="padding:12px 0;border-bottom:1px solid #29313e"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:7px"><span style="display:inline-block;padding:4px 8px;border-radius:5px;background:'+c.bg+';color:'+c.fg+';border:1px solid '+c.border+';font-size:11px;font-weight:800">'+risk+'</span><span class="module-muted" style="font-size:12px">'+esc(x.categoryLabel)+'</span></div><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer" style="color:#f1d18a;font-weight:650;text-decoration:none">'+esc(x.title)+'</a><div class="module-muted" style="font-size:12px;margin-top:6px">🕒 '+esc(when)+' · Investing.com</div></div>';
+  }).join("");
  }
  async function load(){
   if(busy)return;busy=true;$("investingNewsStatus").textContent=words().loading;
