@@ -122,7 +122,8 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
  root.append(panel);
  const $=id=>panel.querySelector("#"+id);
- const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];\n let refreshTimer=null,loading=false;
+ const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];
+ let refreshTimer=null,loading=false;
  const finite=n=>Number.isFinite(n);
  function normalize(raw){
   const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
@@ -172,6 +173,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   table.append(body);$("candleRows").append(table);
  }
  async function load(){
+  if(loading)return;loading=true;
   $("candleStatus").textContent="LOADING REAL CANDLES…";
   $("candleBias").textContent="WAIT · loading market data";
   $("candleReason").textContent="Checking candle coverage, timestamps and indicator inputs.";
@@ -209,9 +211,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("candleReason").textContent=String(error.message||error)+". No fallback or simulated candles are used.";
    $("candleQuality").textContent="A valid, fresh OHLC history is required before analysis can continue.";
    $("candleRows").textContent="Candle validation failed.";
-  }
+  }finally{loading=false}
  }
- $("candleRefresh").addEventListener("click",load);
+ $("candleRefresh").addEventListener("click",()=>{load();if(!refreshTimer)refreshTimer=setInterval(load,120000)});
 })();
 
 render();
