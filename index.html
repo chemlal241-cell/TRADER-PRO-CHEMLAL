@@ -66,6 +66,51 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;transition:trans
  #app .tab{width:auto;flex:0 0 auto}
 }
 
+
+/* Gold AI Trader inspired dashboard refresh */
+:root{--bg:#0b0b11;--panel:#171720;--panel2:#20202a;--line:#30303b;--gold:#f0a51b;--gold2:#ffd36a;--green:#26cf78;--red:#f05c62}
+body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),linear-gradient(160deg,#0d0d14,#11111a 55%,#0a0a10)}
+#app.wrap{max-width:1500px;padding:14px clamp(10px,1.5vw,22px)}
+#app .top{margin:0 0 14px;padding:13px 16px;border-color:#39333a;border-radius:17px;background:linear-gradient(110deg,#1a1a24f5,#111119f5)}
+#app .brand h1{letter-spacing:.5px;font-size:clamp(16px,1.8vw,21px)}
+#app .brand small{letter-spacing:1px;color:#b9a16e}
+#app .logo{border-radius:12px;background:linear-gradient(145deg,#ffcb4e,#a96b0d);color:#241707;border-color:#ffd66b}
+#app .tabs{position:sticky;top:6px;left:auto;right:auto;bottom:auto;width:auto;height:auto;overflow:visible;display:flex;flex-direction:row;align-items:center;gap:5px;margin:0 0 16px;padding:7px 9px;border-radius:15px;background:#1a1a24ed;border:1px solid #34343f;box-shadow:0 8px 26px #0007;z-index:40}
+#app .tab{width:auto;min-height:40px;flex:0 0 auto;text-align:center;padding:9px 14px;border-radius:10px;color:#b7b7c2;font-size:12px}
+#app .tab.active{border-color:#8c6425;background:linear-gradient(120deg,#463117,#292116);color:#ffdc91;box-shadow:inset 0 -2px #f0a51b}
+#app #overview{grid-template-columns:minmax(0,1fr);gap:13px}
+#app #overview>.card:first-child{background:linear-gradient(145deg,#10251e,#101c1a 62%,#151a20);border-color:#28513e;padding:clamp(16px,2vw,24px)}
+#app #overview>.card:first-child .chart{height:110px;min-height:110px;margin-top:12px;background:repeating-linear-gradient(0deg,transparent 0 28px,#334b4135 29px 30px),repeating-linear-gradient(90deg,transparent 0 54px,#334b412c 55px 56px),#0d1715}
+#app .signal{margin-top:12px;border-color:#246b45;background:linear-gradient(120deg,#103d28,#10271f 68%,#17221e);box-shadow:inset 0 0 35px #22c76b12}
+#app .signal strong{color:#36dc85;letter-spacing:1px}
+#app .signal-levels{grid-template-columns:repeat(5,minmax(0,1fr))}
+#app .signal-levels .metric{padding:12px;background:#151c20;border-color:#34433d}
+#app .signal-levels .metric:nth-child(2){background:#28191b;border-color:#67353a}
+#app .signal-levels .metric:nth-child(n+3){background:#123323;border-color:#285a40}
+#app .signal-levels .metric b{font-size:17px}
+#app .card,#app .module-card{border-radius:16px;background:linear-gradient(150deg,#1a1a24,#13131c 75%);border-color:#343440}
+#app .card h2,#app .module-card h2{color:#f3c66d}
+#app .pill{background:#332719;color:#ffd36a;border-color:#755523}
+#app .btn.primary{background:linear-gradient(135deg,#ffd36a,#f0a51b 65%,#b9780e);border-color:#ffd36a}
+#app .metric{background:#171720;border-color:#343440}
+#app .metric span{letter-spacing:.5px}
+#app #marketSessions{order:-1;background:#191922;border-color:#343440}
+#app #marketSessions .module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+#app .footer{margin-top:20px}
+@media(min-width:901px){
+ #app .top,#app>section,#app>.footer{margin-left:0;margin-right:0}
+ [dir=rtl] #app .top,[dir=rtl] #app>section,[dir=rtl] #app>.footer{margin-left:0;margin-right:0}
+ #app .tabs{position:sticky;left:auto;right:auto;top:6px;bottom:auto;width:auto;height:auto}
+}
+@media(max-width:700px){
+ #app .tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
+ #app .tab{white-space:nowrap;padding:9px 11px}
+ #app .signal-levels{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #app .signal-levels .metric:last-child{grid-column:1/-1}
+ #app #marketSessions .module-grid{grid-template-columns:1fr}
+ #app .actions{gap:6px}
+}
+
 </style></head>
 <body>
 <div id="login" class="wrap login card">
@@ -83,7 +128,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;transition:trans
   <article class="card"><div class="hero"><div><div class="muted">MARKET</div><div class="symbol">GOLD / XAUUSD</div></div><span class="pill">SPOT FEED</span></div>
    <div class="chart"><div><div class="big">✦</div><b data-i="feedTitle">Market feed not connected</b><p data-i="feedDesc">Connect a verified quote provider before displaying live prices or generating live signals.</p></div></div>
    <div class="signal"><span class="muted" data-i="currentSignal">CURRENT SIGNAL</span><strong>WAIT</strong><span class="muted" data-i="waitDesc">No live market data — no trade recommendation.</span></div>
-   <div class="metrics"><div class="metric"><span>ENTRY</span><b>—</b></div><div class="metric"><span>STOP LOSS</span><b>—</b></div><div class="metric"><span>TAKE PROFIT</span><b>—</b></div></div>
+   <div class="metrics signal-levels"><div class="metric"><span>ENTRY</span><b>—</b></div><div class="metric"><span>STOP LOSS</span><b>—</b></div><div class="metric"><span>TP1</span><b>—</b></div><div class="metric"><span>TP2</span><b>—</b></div><div class="metric"><span>TP3</span><b>—</b></div></div>
   </article>
   <article class="card"><h2 data-i="marketContext">Market context</h2><div class="list"><div><span data-i="trend">Trend</span><b>—</b></div><div><span data-i="volatility">Volatility</span><b>—</b></div><div><span data-i="timeframe">Timeframe</span><b>15m / 1h / 4h</b></div><div><span data-i="confidence">Signal confidence</span><b>—</b></div></div><p class="notice" data-i="contextNote">Context will populate after a trusted market-data feed and signal engine are configured.</p></article>
   <article class="card wide"><h2 data-i="safetyTitle">Risk & signal policy</h2><p class="notice" data-i="safetyText">Signals are informational, not financial advice. This starter project deliberately stays in WAIT mode until live data, tested rules, and a validated signal engine are connected. No automatic orders are sent.</p></article>
