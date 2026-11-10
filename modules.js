@@ -57,20 +57,6 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("xausPrice").textContent="—";$("xausState").textContent=stateLabel("unavailable");$("xausMeta").textContent="XAUS connection failed. No price displayed; signal remains WAIT.";
   }
  }
- async function loadIntraday(){
-  try{
-   const res=await fetch("https://xaus.com/api/v1/intraday?symbol=xau&hours=24",{cache:"no-store"});
-   const data=await res.json();
-   if(!res.ok||data?.data_state?.status==="unavailable"||!Array.isArray(data.points)||data.points.length<2){$("xausChart").textContent="Intraday history not available yet.";return}
-   const pts=data.points.filter(p=>Number.isFinite(Number(p.p))&&Number.isFinite(Number(p.t)));
-   if(pts.length<2){$("xausChart").textContent="Not enough verified history yet.";return}
-   const w=900,h=140,pad=12,vals=pts.map(p=>Number(p.p)),min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;
-   const path=pts.map((p,i)=>(i?"L":"M")+(pad+i/(pts.length-1)*(w-2*pad)).toFixed(1)+","+(h-pad-(Number(p.p)-min)/span*(h-2*pad)).toFixed(1)).join(" ");
-   const svg='<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="100%" preserveAspectRatio="none" role="img" aria-label="XAUS recorded XAUUSD intraday price history"><path d="'+path+'" fill="none" stroke="#d8ad53" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>';
-   $("xausChart").innerHTML=svg;
-   $("xausChart").title="XAUS first-party recorded spot observations · "+pts.length+" points · state: "+(data.data_state?.status||"unknown");
-  }catch(e){$("xausChart").textContent="Could not load XAUS intraday history."}
- }
  loadSpot();setInterval(loadSpot,60000);
  document.querySelector("#lang")?.addEventListener("change",()=>{loadSpot()});
 })(); 
