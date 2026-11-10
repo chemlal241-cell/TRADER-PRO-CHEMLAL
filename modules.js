@@ -501,3 +501,39 @@ render();
  }
  render();
 })();
+
+
+/* Forex session clock — scheduled weekday windows; does not model exchange holidays */
+(function(){
+ const root=document.querySelector("#overview");
+ if(!root||root.querySelector("#marketSessions"))return;
+ const panel=document.createElement("article");
+ panel.id="marketSessions";
+ panel.className="module-card wide";
+ panel.style.marginTop="16px";
+ panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Global Trading Sessions</h2><span id="sessionMoroccoTime" class="module-muted">Morocco time · —</span></div><p class="module-muted" style="margin:8px 0 14px">Scheduled weekday session hours. Green = session active · grey = session ended or not yet open. Local public holidays and broker hours may differ.</p><div id="sessionCards" class="module-grid"></div>';
+ root.append(panel);
+ const sessions=[
+  {name:"Asia · Tokyo",tz:"Asia/Tokyo",start:9,end:18},
+  {name:"London",tz:"Europe/London",start:8,end:17},
+  {name:"New York",tz:"America/New_York",start:8,end:17}
+ ];
+ const $=id=>panel.querySelector("#"+id);
+ const fmtTime=(date,tz)=>new Intl.DateTimeFormat("en-GB",{timeZone:tz,hour:"2-digit",minute:"2-digit",hour12:false}).format(date);
+ const parts=(date,tz)=>Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:tz,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(date).map(p=>[p.type,p.value]));
+ function render(){
+  const now=new Date();
+  $("sessionMoroccoTime").textContent="Morocco time · "+new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Casablanca",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now);
+  $("sessionCards").innerHTML=sessions.map(s=>{
+   const p=parts(now,s.tz),weekday=["Mon","Tue","Wed","Thu","Fri"].includes(p.weekday);
+   const minute=Number(p.hour)*60+Number(p.minute),open=weekday&&minute>=s.start*60&&minute<s.end*60;
+   const status=open?"SESSION OPEN":"SESSION CLOSED";
+   const color=open?"#35c98a":"#9aa3ad",bg=open?"#103323":"#20252d",border=open?"#26764a":"#4a515b";
+   const localStart=String(s.start).padStart(2,"0")+":00",localEnd=String(s.end).padStart(2,"0")+":00";
+   return '<div class="module-card" style="border-color:'+border+'"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0;color:#f1d18a">'+s.name+'</h2><span style="padding:5px 9px;border-radius:20px;background:'+bg+';color:'+color+';font-size:11px;font-weight:800">● '+status+'</span></div><div style="font-size:25px;font-weight:800;color:#fff;margin:13px 0 5px">'+fmtTime(now,s.tz)+'</div><div class="module-muted">Session hours · '+localStart+'–'+localEnd+' local time</div><div class="module-muted" style="margin-top:5px">'+(weekday?"Weekday schedule":"Weekend · normally closed")+'</div></div>';
+  }).join("");
+ }
+ render();
+ setInterval(render,15000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)render()});
+})();
