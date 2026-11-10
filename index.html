@@ -111,6 +111,38 @@ body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),l
  #app .actions{gap:6px}
 }
 
+
+/* Gold terminal composition inspired by the supplied reference */
+.top{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;align-items:center;gap:20px;padding:13px 17px;margin-bottom:12px}
+.brand .version{display:inline!important;color:#f3c66d;font-size:10px;letter-spacing:.4px;margin-left:5px}
+.top-quote{display:flex;flex-direction:column;align-items:center;gap:0;min-width:190px}
+.top-quote strong{font-size:clamp(25px,3vw,37px);line-height:1.1;letter-spacing:1px;color:#fff;font-variant-numeric:tabular-nums}
+.quote-label{font-size:9px;letter-spacing:2px;color:#a8a8b2;font-weight:800}
+.quote-state{font-size:9px;color:#9ba3ad;letter-spacing:.7px;margin-top:5px}
+.clock-pill{border:1px solid #3b3940;background:#20202a;border-radius:30px;padding:8px 11px;font-size:11px;color:#f2d28c;font-variant-numeric:tabular-nums;white-space:nowrap}
+.session-strip{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 14px;padding:10px 13px;border:1px solid #34343f;border-radius:15px;background:linear-gradient(100deg,#191922,#14141c);color:#aeb0bb}
+.session-strip>b{font-size:10px;letter-spacing:1.5px;color:#e6c477;margin-right:4px}
+.session-chip{padding:6px 11px;border-radius:22px;border:1px solid #44444e;background:#22222c;color:#a5a5b0;font-size:10px;font-weight:800;white-space:nowrap}
+.session-chip.open{color:#37dc89;background:#103323;border-color:#26764a}
+.session-note{margin-left:auto;font-size:10px;color:#888995}
+#overview{grid-template-columns:minmax(0,1fr)!important}
+#overview>.card:first-child{background:linear-gradient(145deg,#10251e,#101c1a 62%,#151a20);border-color:#28513e}
+#overview>.card:first-child .chart{height:90px;min-height:90px;margin-top:10px}
+.signal{background:linear-gradient(120deg,#10231d,#101b19);border-color:#28533d}
+.signal strong{font-size:clamp(34px,5vw,48px)}
+.signal-levels{grid-template-columns:repeat(5,minmax(0,1fr))}
+.signal-levels .metric{padding:12px;background:#151c20;border-color:#34433d}
+.signal-levels .metric:nth-child(2){background:#28191b;border-color:#67353a}
+.signal-levels .metric:nth-child(n+3){background:#123323;border-color:#285a40}
+.signal-levels .metric b{font-size:17px}
+#marketSessions{order:-1}
+#marketSessions .module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tabs{margin-bottom:14px}
+.tab{font-size:12px}
+#tools .signal{background:linear-gradient(120deg,#302514,#1a1b1c);border-color:#8c6a31}
+@media(max-width:900px){.top{display:flex;flex-wrap:wrap;align-items:center}.top-quote{order:3;flex:1 1 100%;align-items:flex-start}.actions{width:100%}.session-note{margin-left:0}}
+@media(max-width:700px){.session-strip{gap:6px}.session-strip>b{width:100%}.session-chip{font-size:9px;padding:6px 8px}.signal-levels{grid-template-columns:repeat(2,minmax(0,1fr))}.signal-levels .metric:last-child{grid-column:1/-1}#marketSessions .module-grid{grid-template-columns:1fr}}
+
 </style></head>
 <body>
 <div id="login" class="wrap login card">
@@ -121,9 +153,9 @@ body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),l
  <p id="loginMsg" class="notice"></p>
 </div>
 <div id="app" class="wrap hidden">
- <header class="top"><div class="brand"><div class="logo">♛</div><div><h1>TRADER PRO CHEMLAL</h1><small>AI GOLD SIGNALS TERMINAL</small></div></div>
- <div class="actions"><span class="pill">XAUUSD</span><select id="lang" aria-label="Language"><option value="en">English</option><option value="ar">العربية</option><option value="fr">Français</option><option value="es">Español</option></select><button id="logout" class="btn" data-i="logout">Lock</button></div></header>
- <nav class="tabs"><button class="tab active" data-tab="overview" data-i="live">Live Signals</button><button class="tab" data-tab="tools" data-i="tools">Tools</button><button class="tab" data-tab="analysis" data-i="analysis">Chart Analyzer</button><button class="tab" data-tab="strategy" data-i="strategy">Strategies</button></nav>
+ <header class="top"><div class="brand"><div class="logo">♛</div><div><h1>TRADER PRO CHEMLAL <small class="version">PRO · XAUUSD</small></h1><small>AI GOLD SIGNALS TERMINAL · SIGNALS ONLY</small></div></div><div class="top-quote"><span class="quote-label">GOLD / XAUUSD</span><strong id="topGoldPrice">—</strong><span id="topGoldState" class="quote-state">WAITING FOR VERIFIED PRICE</span></div><div class="actions"><span id="moroccoClock" class="clock-pill">🇲🇦 --:--:--</span><select id="lang" aria-label="Language"><option value="en">EN</option><option value="ar">AR</option><option value="fr">FR</option><option value="es">ES</option></select><button id="topRefresh" class="btn primary" type="button">↻ Refresh</button><button id="logout" class="btn" data-i="logout">Lock</button></div></header>
+ <div class="session-strip"><b>GLOBAL SESSIONS</b><span id="chipTokyo" class="session-chip">● TOKYO · —</span><span id="chipLondon" class="session-chip">● LONDON · —</span><span id="chipNewYork" class="session-chip">● NEW YORK · —</span><span class="session-note">All session times · Morocco</span></div>
+ <nav class="tabs"><button class="tab active" data-tab="overview" data-i="live">📊 Live AI</button><button class="tab" data-tab="analysis" data-i="analysis">🖼 Image Analyzer</button><button class="tab" data-tab="tools" data-i="tools">🧰 Tools</button><button class="tab" data-tab="strategy" data-i="strategy">📚 Strategies</button><button class="tab" data-tab="news">🗞 News & Calendar</button></nav>
  <section id="overview" class="grid">
   <article class="card"><div class="hero"><div><div class="muted">MARKET</div><div class="symbol">GOLD / XAUUSD</div></div><span class="pill">SPOT FEED</span></div>
    <div class="chart"><div><div class="big">✦</div><b data-i="feedTitle">Market feed not connected</b><p data-i="feedDesc">Connect a verified quote provider before displaying live prices or generating live signals.</p></div></div>
