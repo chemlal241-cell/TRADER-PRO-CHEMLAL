@@ -281,7 +281,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",ema9>ema21,rsiVal>50,macdVal?.hist>0,bullDiv,bullSweepShift,vwapBull,adxStrong].filter(Boolean).length;
   const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",ema9<ema21,rsiVal<50,macdVal?.hist<0,bearDiv,bearSweepShift,vwapBear,adxStrong].filter(Boolean).length;
   const direction=bullish>bearish?"BUY BIAS":bearish>bullish?"SELL BIAS":"MIXED";
-  const score=Math.max(bullish,bearish),total=14,rrReady=score>=8&&Math.abs(bullish-bearish)>=4;
+  const score=Math.max(bullish,bearish),total=14,confluencePct=score/total*100,rrReady=confluencePct>=85&&Math.abs(bullish-bearish)>=4;
   const side=bullish>bearish?"BUY":bearish>bullish?"SELL":null;
   const entry=last.c,invalid=side==="BUY"?(priorL?.p??last.l-atrNow):(priorH?.p??last.h+atrNow);
   const risk=side?Math.abs(entry-invalid):0;
@@ -321,7 +321,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const h1Bear=h.ema20<h.ema50,m15Bear=m.ema20<m.ema50&&m.macd?.hist<0&&m.rsi<50;
   const aligned=side==="BUY"?(h1Bull&&m15Bull):(h1Bear&&m15Bear);
   const candidate=!!(side&&rrReady&&risk>0&&atrNow>0&&structureTrigger&&aligned&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
-  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" · 1h/15m aligned · Historical win rate: N/A (no validated strategy backtest yet) · NOT VALIDATED; paper-only.":"WAIT · requires 8/14 confluence, 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" ("+confluencePct.toFixed(1)+"%) · 1h/15m aligned · Historical win rate: N/A (no validated strategy backtest yet) · NOT VALIDATED; paper-only.":"WAIT · requires at least 85% confluence (12/14 factors), 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
   return candidate?{side,entry,sl,tp1,tp2,tp3,score,total,atr:atrNow,time:m.last?.t||last.t}:null;
  }
 
