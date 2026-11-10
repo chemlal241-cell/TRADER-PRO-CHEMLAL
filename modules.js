@@ -448,11 +448,11 @@ render();
  if(!root||root.dataset.catalogReady)return;
  root.dataset.catalogReady="1";
  const intro=root.querySelector(":scope > .card");
- if(intro)intro.innerHTML='<h2>Strategy library · XAU/USD</h2><p class="notice">18 structured strategy templates across Smart Money Concepts, trend & momentum, price action, and market context. Each template explains its method, confirmation and invalidation. Select a category to explore.</p><div class="module-muted">Important: indicator observations are calculated only when validated candles are available; chart formations and event context may require manual confirmation. No template independently authorizes a live BUY/SELL.</div>';
+ if(intro)intro.innerHTML='<h2>Strategy library · XAU/USD</h2><p class="notice">19 structured strategy templates across Smart Money Concepts, trend & momentum, price action, and market context. Each template explains its method, confirmation and invalidation. Select a category to explore.</p><div class="module-muted">Important: indicator observations are calculated only when validated candles are available; chart formations and event context may require manual confirmation. No template independently authorizes a live BUY/SELL.</div>';
  const panel=document.createElement("article");
  panel.className="module-card wide";
  panel.style.marginTop="14px";
- panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Strategy Library · 18 setups</h2><span class="module-muted">XAU/USD · educational playbook</span></div>'+
+ panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Strategy Library · 19 setups</h2><span class="module-muted">XAU/USD · educational playbook</span></div>'+
  '<div id="slFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0"></div>'+
  '<div id="slCount" class="module-muted" style="margin-bottom:10px"></div>'+
  '<div id="slCards" class="module-grid"></div>'+
