@@ -20,5 +20,60 @@ document.querySelector("#jAdd").onclick=()=>{const symbol=document.querySelector
 document.querySelector("#jClear").onclick=()=>{if(confirm("Delete all locally saved journal entries?")){save([]);render()}};
 document.querySelector("#jExport").onclick=()=>{const a=get();if(!a.length)return;const cols=["date","symbol","side","entry","exit","r","notes"],esc=v=>'"'+String(v??"").replace(/"/g,'""')+'"',csv=[cols.join(","),...a.map(x=>cols.map(k=>esc(x[k])).join(","))].join("\n"),url=URL.createObjectURL(new Blob([csv],{type:"text/csv"})),link=document.createElement("a");link.href=url;link.download="trader-pro-journal.csv";link.click();URL.revokeObjectURL(url)};
 document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector("#btValues").value.split(/[,\s;]+/).filter(Boolean).map(Number),out=document.querySelector("#btOut");if(!vals.length||vals.some(x=>!Number.isFinite(x))){out.textContent="Enter valid numeric R results separated by commas.";return}let equity=0,peak=0,dd=0,wins=0,gw=0,gl=0;vals.forEach(x=>{equity+=x;peak=Math.max(peak,equity);dd=Math.max(dd,peak-equity);if(x>0){wins++;gw+=x}else if(x<0)gl+=Math.abs(x)});out.textContent="Trades: "+vals.length+" | Win rate: "+(wins/vals.length*100).toFixed(1)+"% | Net: "+equity.toFixed(2)+"R | Expectancy: "+(equity/vals.length).toFixed(2)+"R/trade | Profit factor: "+(gl?(gw/gl).toFixed(2):"∞ (no losses)")+" | Max drawdown: "+dd.toFixed(2)+"R"};
+
+/* XAUS real XAU/USD spot feed — indicative mid-market, not broker execution price */
+(function(){
+ const overview=document.querySelector("#overview");
+ if(!overview)return;
+ const card=document.createElement("article");
+ card.className="module-card wide";
+ card.style.marginBottom="16px";
+ card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · XAUS SPOT</h2><span id="xausState" class="module-muted">Connecting to XAUS…</span></div><div style="display:flex;gap:24px;align-items:baseline;flex-wrap:wrap;margin:16px 0"><strong id="xausPrice" style="font-size:clamp(30px,5vw,46px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for a verified quote…</div><div id="xausChart" style="height:150px;margin-top:14px;border:1px solid #29313e;border-radius:10px;background:#0b1017;display:grid;place-items:center;color:#93a0b2">Intraday history loading…</div><p class="module-muted" style="margin-bottom:0">Source: XAUS · Indicative spot mid-price, not a tradable broker quote. Updates are cached for up to 60 seconds. Signals remain WAIT until a separate validated signal engine is available.</p>';
+ overview.insertBefore(card,overview.firstChild);
+ const $=id=>card.querySelector("#"+id);
+ const fmt=n=>Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+ function stateLabel(status,age){const lang=document.querySelector("#lang")?.value||"en";const words={en:{fresh:"LIVE · FRESH",stale:"STALE · LAST REAL QUOTE",unavailable:"UNAVAILABLE · NO PRICE"},ar:{fresh:"مباشر · حديث",stale:"قديم · آخر سعر حقيقي",unavailable:"غير متاح · لا يوجد سعر"},fr:{fresh:"DIRECT · À JOUR",stale:"ANCIEN · DERNIER COURS RÉEL",unavailable:"INDISPONIBLE"},es:{fresh:"EN VIVO · ACTUALIZADO",stale:"ANTIGUO · ÚLTIMO PRECIO REAL",unavailable:"NO DISPONIBLE"}};return (words[lang]||words.en)[status]||status.toUpperCase()}
+ async function loadSpot(){
+  try{
+   const res=await fetch("https://xaus.com/api/v1/spot?compact=1",{cache:"no-store"});
+   const data=await res.json();
+   const generated=Date.parse(data.updated_at||"");
+   const age=Number.isFinite(generated)?Math.max(0,(Date.now()-generated)/1000):Infinity;
+   const status=data?.data_state?.status;
+   const fresh=status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
+   const stale=status==="stale"&&Number.isFinite(Number(data.spot_usd_oz))&&age<=300;
+   if(!res.ok||(!fresh&&!stale)){
+    $("xausPrice").textContent="—";
+    $("xausState").textContent=stateLabel("unavailable");
+    $("xausMeta").textContent="No verified recent quote. Trading signal: WAIT.";
+    return;
+   }
+   $("xausPrice").textContent="$"+fmt(data.spot_usd_oz);
+   $("xausState").textContent=stateLabel(fresh?"fresh":"stale");
+   $("xausState").style.color=fresh?"#35c98a":"#f1d18a";
+   const asOf=data.price_as_of||data.data_state?.as_of||data.updated_at;
+   $("xausMeta").textContent="Price time: "+new Date(asOf).toLocaleString()+" UTC · API age: "+Math.round(age)+"s · "+(data.price_source||"xaus.com")+(fresh?"":" · Signal: WAIT");
+  }catch(e){
+   $("xausPrice").textContent="—";$("xausState").textContent=stateLabel("unavailable");$("xausMeta").textContent="XAUS connection failed. No price displayed; signal remains WAIT.";
+  }
+ }
+ async function loadIntraday(){
+  try{
+   const res=await fetch("https://xaus.com/api/v1/intraday?symbol=xau&hours=24",{cache:"no-store"});
+   const data=await res.json();
+   if(!res.ok||data?.data_state?.status==="unavailable"||!Array.isArray(data.points)||data.points.length<2){$("xausChart").textContent="Intraday history not available yet.";return}
+   const pts=data.points.filter(p=>Number.isFinite(Number(p.p))&&Number.isFinite(Number(p.t)));
+   if(pts.length<2){$("xausChart").textContent="Not enough verified history yet.";return}
+   const w=900,h=140,pad=12,vals=pts.map(p=>Number(p.p)),min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;
+   const path=pts.map((p,i)=>(i?"L":"M")+(pad+i/(pts.length-1)*(w-2*pad)).toFixed(1)+","+(h-pad-(Number(p.p)-min)/span*(h-2*pad)).toFixed(1)).join(" ");
+   const svg='<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="100%" preserveAspectRatio="none" role="img" aria-label="XAUS recorded XAUUSD intraday price history"><path d="'+path+'" fill="none" stroke="#d8ad53" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>';
+   $("xausChart").innerHTML=svg;
+   $("xausChart").title="XAUS first-party recorded spot observations · "+pts.length+" points · state: "+(data.data_state?.status||"unknown");
+  }catch(e){$("xausChart").textContent="Could not load XAUS intraday history."}
+ }
+ loadSpot();loadIntraday();setInterval(loadSpot,60000);setInterval(loadIntraday,300000);
+ document.querySelector("#lang")?.addEventListener("change",()=>{loadSpot()});
+})(); 
+
 render();
 })();
