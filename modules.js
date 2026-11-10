@@ -122,7 +122,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
  root.append(panel);
  const $=id=>panel.querySelector("#"+id);
- const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];
+ const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];\n let refreshTimer=null,loading=false;
  const finite=n=>Number.isFinite(n);
  function normalize(raw){
   const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
