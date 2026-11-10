@@ -387,3 +387,47 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
 
 render();
 })();
+
+/* Investing.com news bridge — RSS is fetched server-side to avoid browser CORS issues */
+(function(){
+ const root=document.querySelector("#overview");
+ if(!root)return;
+ const card=document.createElement("article");
+ card.className="module-card wide";
+ card.style.marginTop="16px";
+ card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Investing.com · Market News</h2><span id="investingNewsStatus" class="module-muted">Connecting…</span></div>'+
+ '<p class="module-muted" style="margin:8px 0 12px">Gold, commodities, forex and macroeconomic headlines · source links open on Investing.com.</p>'+
+ '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button type="button" data-news-filter="all">All</button><button type="button" data-news-filter="gold">Commodities</button><button type="button" data-news-filter="forex">Forex</button><button type="button" data-news-filter="macro">Economic</button><button type="button" id="investingNewsRefresh">Refresh</button></div>'+
+ '<div id="investingNewsList" class="module-muted" aria-live="polite">Loading Investing.com headlines…</div>'+
+ '<p class="module-muted" style="margin:12px 0 0">News is informational, may be delayed, and is not a trading signal. Economic calendar events are not included in this news feed.</p>'+
+ '<div style="margin-top:8px"><a href="https://www.investing.com/news/" target="_blank" rel="noopener noreferrer">Open Investing.com News</a> · <a href="https://www.investing.com/economic-calendar/" target="_blank" rel="noopener noreferrer">Economic Calendar</a></div>';
+ root.append(card);
+ const $=id=>card.querySelector("#"+id);
+ let items=[],filter="all",busy=false;
+ const labels={en:{loading:"Updating headlines…",ok:"UPDATED",partial:"PARTIAL FEED",none:"FEED UNAVAILABLE",empty:"No headlines returned. Use the Investing.com links below.",error:"Could not load the news feed. Direct links remain available.",all:"All",gold:"Commodities",forex:"Forex",macro:"Economic",refresh:"Refresh"},ar:{loading:"جارٍ تحديث الأخبار…",ok:"تم التحديث",partial:"تحديث جزئي",none:"المصدر غير متاح",empty:"لا توجد عناوين حالياً. استخدم روابط Investing.com أدناه.",error:"تعذر تحميل الأخبار. الروابط المباشرة ما زالت متاحة.",all:"الكل",gold:"السلع والذهب",forex:"الفوركس",macro:"اقتصاد",refresh:"تحديث"},fr:{loading:"Mise à jour…",ok:"MIS À JOUR",partial:"FLUX PARTIEL",none:"INDISPONIBLE",empty:"Aucun titre. Consultez les liens Investing.com.",error:"Flux indisponible. Les liens directs restent disponibles.",all:"Tout",gold:"Matières premières",forex:"Forex",macro:"Économie",refresh:"Actualiser"},es:{loading:"Actualizando…",ok:"ACTUALIZADO",partial:"FUENTE PARCIAL",none:"NO DISPONIBLE",empty:"No hay titulares. Usa los enlaces de Investing.com.",error:"No se pudo cargar el feed. Los enlaces directos siguen disponibles.",all:"Todo",gold:"Materias primas",forex:"Forex",macro:"Economía",refresh:"Actualizar"}};
+ function words(){return labels[document.querySelector("#lang")?.value||"en"]||labels.en}
+ function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+ function render(){
+  const list=$("investingNewsList");
+  const shown=items.filter(x=>filter==="all"||x.category===filter);
+  if(!shown.length){list.textContent=words().empty;return}
+  list.innerHTML=shown.map(x=>'<div style="padding:10px 0;border-bottom:1px solid #29313e"><a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer" style="color:#f1d18a;font-weight:650;text-decoration:none">'+esc(x.title)+'</a><div class="module-muted" style="font-size:12px;margin-top:5px">'+esc(x.categoryLabel)+' · '+esc(x.published||"Date not provided")+' · Investing.com</div></div>').join("");
+ }
+ async function load(){
+  if(busy)return;busy=true;$("investingNewsStatus").textContent=words().loading;
+  try{
+   const res=await fetch("/api/news",{cache:"no-store"});
+   const data=await res.json();
+   if(!res.ok)throw new Error(data.error||"HTTP "+res.status);
+   items=Array.isArray(data.items)?data.items:[];
+   $("investingNewsStatus").textContent=items.length?(data.partial?words().partial:words().ok):words().none;
+   render();
+  }catch(e){$("investingNewsStatus").textContent=words().none;$("investingNewsList").textContent=words().error}
+  finally{busy=false}
+ }
+ card.querySelectorAll("[data-news-filter]").forEach(btn=>btn.addEventListener("click",()=>{filter=btn.dataset.newsFilter;render()}));
+ $("investingNewsRefresh").addEventListener("click",load);
+ document.querySelector("#lang")?.addEventListener("change",()=>{render();$("investingNewsStatus").textContent=items.length?words().ok:words().none});
+ load();setInterval(()=>{if(!document.hidden)load()},300000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
+})(); 
