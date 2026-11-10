@@ -37,3 +37,13 @@ XAUS documents this as a multi-asset OHLCV endpoint backed by a Yahoo Finance pr
 
 ## Next validation milestone
 Implement a reproducible candle-based strategy backtest with no look-ahead bias, separated training/validation windows, conservative same-bar stop/target handling, spread/slippage assumptions, and metrics (trade count, win rate, expectancy, profit factor, max drawdown). Only enable BUY/SELL if the out-of-sample test passes explicit minimum criteria; otherwise keep WAIT.
+
+
+## Advanced strategy matrix
+The Live Signals candle engine also calculates rule-based observations from validated closed OHLC candles:
+- Market structure: swing HH/HL, LH/LL, BOS and CHoCH candidates.
+- Smart Money Concepts: potential order blocks, three-candle fair-value gaps, equal highs/lows, liquidity sweeps, premium/discount and Fibonacci retracement zones.
+- Indicators: EMA 9/21/50/200, RSI, MACD, ATR, ADX, SuperTrend approximation, Ichimoku levels, Stochastic and Bollinger Bands.
+- Context: candlestick pattern candidates, RSI divergence candidates, London/New York session clock, and VWAP only when usable volume is present.
+- Candidate Entry/SL/TP levels are informational only and remain gated by confluence. No BUY/SELL signal is enabled until independent out-of-sample backtesting and forward paper validation pass.
+- DXY and live economic news are not connected; users must independently verify CPI, NFP and FOMC risk. Chart patterns such as triangles, wedges, flags and head-and-shoulders still require visual confirmation.
