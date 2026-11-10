@@ -127,7 +127,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  function normalize(raw){
   const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
   return rows.map(x=>{
-   const t=typeof x.t==="number"?(x.t<1e12?x.t*1000:x.t):Date.parse(x.t||x.time||x.timestamp||"");
+   const rawTime=x.t??x.time??x.timestamp??"",numericTime=Number(rawTime);\n  const t=finite(numericTime)?(numericTime<1e12?numericTime*1000:numericTime):Date.parse(rawTime);
    return {t,o:Number(x.o??x.open),h:Number(x.h??x.high),l:Number(x.l??x.low),c:Number(x.c??x.close),v:Number(x.v??x.volume??0)};
   }).filter(x=>finite(x.t)&&[x.o,x.h,x.l,x.c].every(finite)&&x.o>0&&x.c>0&&x.h>=Math.max(x.o,x.c,x.l)&&x.l<=Math.min(x.o,x.c,x.h))
    .sort((a,b)=>a.t-b.t).filter((x,i,a)=>i===0||x.t!==a[i-1].t);
