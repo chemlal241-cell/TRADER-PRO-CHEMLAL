@@ -122,6 +122,28 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
  root.append(panel);
  const $=id=>panel.querySelector("#"+id);
+ function updateLivePanel(signal,description,biasLabel){
+  const strong=root.querySelector(".card .signal strong");
+  const desc=root.querySelector('.card .signal [data-i="waitDesc"]');
+  if(strong)strong.textContent=signal;
+  if(desc)desc.textContent=description;
+  const context=root.querySelectorAll(".card")[1];
+  if(context){
+   const values=context.querySelectorAll(".list b");
+   if(values[0])values[0].textContent=biasLabel||"—";
+   if(values[3])values[3].textContent="NOT VALIDATED";
+  }
+ }
+ async function getFreshSpot(){
+  try{
+   const response=await fetch("https://xaus.com/api/v1/spot?compact=1",{cache:"no-store"});
+   const data=await response.json();
+   const stamp=Date.parse(data.price_as_of||data.data_state?.as_of||data.updated_at||"");
+   const age=Number.isFinite(stamp)?Math.max(0,(Date.now()-stamp)/1000):Infinity;
+   const ok=response.ok&&data.data_state?.status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
+   return {ok,price:Number(data.spot_usd_oz),age};
+  }catch(_){return {ok:false}}
+ }
  const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];
  let refreshTimer=null,loading=false;
  const finite=n=>Number.isFinite(n);
@@ -203,6 +225,12 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("candleBias").textContent="WAIT · "+bias+" BIAS";
    $("candleReason").textContent="1h EMA20/50: "+(up?"bullish":down?"bearish":"flat")+". 15m MACD/RSI: "+(momUp?"bullish momentum":momDown?"bearish momentum":"mixed momentum")+". 5m last closed candle: "+new Date(l.last.t).toLocaleString()+".";
    $("candleQuality").textContent="Valid bars: 5m "+l.count+" · 15m "+m.count+" · 1h "+h.count+" | Oldest last-closed age: "+Math.round(candleAge/60000)+" min. Confluence is not a probability.";
+   const spot=await getFreshSpot();
+   if(spot.ok){
+    updateLivePanel("WAIT · "+bias+" BIAS","Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz and verified 5m/15m/1h candles. Directional bias only; BUY/SELL remains disabled pending independent strategy validation.",bias);
+   }else{
+    updateLivePanel("WAIT","Candles are verified, but no fresh XAUS spot quote is confirmed. No trade recommendation.",bias);
+   }
    $("candleMeta").textContent="Source: XAUS /api/v1/chart (XAU series via Yahoo Finance proxy). Refreshed: "+new Date().toLocaleString()+". Last forming candle excluded from indicators.";
   }catch(error){
    $("candleStatus").textContent="DATA UNAVAILABLE / STALE";
@@ -210,6 +238,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("candleBias").textContent="WAIT · NO VALID SIGNAL";
    $("candleReason").textContent=String(error.message||error)+". No fallback or simulated candles are used.";
    $("candleQuality").textContent="A valid, fresh OHLC history is required before analysis can continue.";
+   updateLivePanel("WAIT","No verified candle set is available. Live Signals is held in WAIT; no trade recommendation.", "UNAVAILABLE");
    $("candleRows").textContent="Candle validation failed.";
   }finally{loading=false}
  }
