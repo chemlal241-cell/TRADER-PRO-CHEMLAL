@@ -127,7 +127,8 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  function normalize(raw){
   const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
   return rows.map(x=>{
-   const rawTime=x.t??x.time??x.timestamp??"",numericTime=Number(rawTime);\n  const t=finite(numericTime)?(numericTime<1e12?numericTime*1000:numericTime):Date.parse(rawTime);
+   const rawTime=x.t??x.time??x.timestamp??"",numericTime=Number(rawTime);
+   const t=finite(numericTime)?(numericTime<1e12?numericTime*1000:numericTime):Date.parse(rawTime);
    return {t,o:Number(x.o??x.open),h:Number(x.h??x.high),l:Number(x.l??x.low),c:Number(x.c??x.close),v:Number(x.v??x.volume??0)};
   }).filter(x=>finite(x.t)&&[x.o,x.h,x.l,x.c].every(finite)&&x.o>0&&x.c>0&&x.h>=Math.max(x.o,x.c,x.l)&&x.l<=Math.min(x.o,x.c,x.h))
    .sort((a,b)=>a.t-b.t).filter((x,i,a)=>i===0||x.t!==a[i-1].t);
@@ -156,10 +157,10 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  }
  function macd(values){
   if(values.length<40)return null;
-  const line=[];
-  for(let i=0;i<values.length;i++)line.push(ema(values.slice(0,i+1),12)-ema(values.slice(0,i+1),26));
-  const valid=line.filter(finite),signal=ema(valid,9);
-  return {line:valid[valid.length-1],signal,hist:valid[valid.length-1]-signal};
+  const k12=2/13,k26=2/27;let e12=values[0],e26=values[0];const line=[];
+  for(let i=1;i<values.length;i++){e12=values[i]*k12+e12*(1-k12);e26=values[i]*k26+e26*(1-k26);line.push(e12-e26)}
+  const signal=ema(line,9),last=line[line.length-1];
+  return {line:last,signal,hist:last-signal};
  }
  const fmt=n=>finite(n)?n.toFixed(2):"—";
  function showRows(items){
