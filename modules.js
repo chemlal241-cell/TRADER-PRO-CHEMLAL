@@ -75,5 +75,38 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  document.querySelector("#lang")?.addEventListener("change",()=>{loadSpot()});
 })(); 
 
+/* Strategy Workbench — manual confluence and discipline checklist; never fabricates live signals */
+(function(){
+ const root=document.querySelector("#strategy");
+ if(!root)return;
+ const card=document.createElement("article");
+ card.className="card wide";
+ card.innerHTML='<h2>Multi-Strategy Workbench · XAU/USD</h2><p class="notice">Record what you actually see on your chart. This tool scores checklist confluence only; it does not read candles or generate a live BUY/SELL signal.</p><div class="module-grid" style="margin-top:12px">'+
+ '<div class="module-card"><h2>Technical confluence</h2>'+
+ '<label>Higher-timeframe trend</label><select id="swTrend"><option value="0">Not checked</option><option value="2">Bullish alignment</option><option value="2">Bearish alignment</option><option value="0">Sideways / mixed</option></select>'+
+ '<label>Market structure</label><select id="swStructure"><option value="0">Not checked</option><option value="2">BOS confirmed</option><option value="2">CHOCH confirmed</option><option value="0">No clear structure</option></select>'+
+ '<label>Key zone</label><select id="swZone"><option value="0">Not checked</option><option value="2">Support / demand reaction</option><option value="2">Resistance / supply reaction</option><option value="2">FVG / order-block confluence</option><option value="0">No clear zone</option></select>'+
+ '<label>Entry confirmation</label><select id="swEntry"><option value="0">Not checked</option><option value="2">Engulfing / pin bar confirmed</option><option value="2">Breakout and retest confirmed</option><option value="2">Liquidity sweep and reclaim</option><option value="0">No confirmation</option></select>'+
+ '<label>Momentum</label><select id="swMomentum"><option value="0">Not checked</option><option value="1">RSI / MACD supports setup</option><option value="0">Divergent or conflicting</option></select>'+
+ '<label>Volatility and news</label><select id="swRisk"><option value="0">Not checked</option><option value="1">No major event / volatility risk</option><option value="0">Major event or abnormal volatility</option></select></div>'+
+ '<div class="module-card"><h2>Psychology & execution</h2>'+
+ '<label>Emotional state</label><select id="swEmotion"><option value="0">Not checked</option><option value="1">Calm and patient</option><option value="0">Fear, FOMO, anger or revenge</option></select>'+
+ '<label>Trading discipline</label><select id="swDiscipline"><option value="0">Not checked</option><option value="1">Following written plan</option><option value="0">Outside the plan</option></select>'+
+ '<label>Risk plan</label><select id="swRiskPlan"><option value="0">Not checked</option><option value="1">Stop and position risk defined</option><option value="0">Stop / size not verified</option></select>'+
+ '<label>Reward-to-risk</label><select id="swRR"><option value="0">Not checked</option><option value="1">At least 1:2</option><option value="0">Below 1:2 / unclear</option></select>'+
+ '<label>Market session</label><select id="swSession"><option value="0">Not checked</option><option value="1">Liquid session with clear movement</option><option value="0">Quiet / uncertain conditions</option></select>'+
+ '<div id="swResult" class="module-result" aria-live="polite">Complete the checklist, then calculate confluence.</div><button id="swCalc" style="margin-top:10px">Calculate checklist score</button><p class="module-muted">Maximum 14 points. A high score is not proof of profitability; verify every setup with historical and forward testing.</p></div></div>';
+ root.append(card);
+ card.querySelector("#swCalc").addEventListener("click",()=>{
+  const ids=["swTrend","swStructure","swZone","swEntry","swMomentum","swRisk","swEmotion","swDiscipline","swRiskPlan","swRR","swSession"];
+  const score=ids.reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
+  const technical=ids.slice(0,6).reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
+  const psychology=ids.slice(6).reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
+  const blocked=["swRisk","swEmotion","swDiscipline","swRiskPlan"].some(id=>card.querySelector("#"+id).value==="0");
+  const out=card.querySelector("#swResult");
+  out.textContent="Checklist: "+score+"/14 · Technical: "+technical+"/10 · Psychology & execution: "+psychology+"/4. "+(blocked?"WAIT — one or more safety/discipline checks are incomplete or adverse.":"Checklist recorded. This is not a live signal; confirm candles, levels, spread and backtest before any decision.");
+ });
+})();
+
 render();
 })();
