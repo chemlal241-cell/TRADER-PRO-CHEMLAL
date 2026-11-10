@@ -239,6 +239,13 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   if(body/range<.1)return "Doji";
   if(lower>body*2&&upper<body)return "Hammer / bullish pin";
   if(upper>body*2&&lower<body)return "Shooting Star / bearish pin";
+  if(rows.length>=3){
+   const x=rows.slice(-3),b=x.map(z=>Math.abs(z.c-z.o)),r=x.map(z=>z.h-z.l||1);
+   if(x.every(z=>z.c>z.o)&&x[1].c>x[0].c&&x[2].c>x[1].c&&b.every((v,i)=>v/r[i]>.5))return "Three White Soldiers";
+   if(x.every(z=>z.c<z.o)&&x[1].c<x[0].c&&x[2].c<x[1].c&&b.every((v,i)=>v/r[i]>.5))return "Three Black Crows";
+   if(x[0].c<x[0].o&&b[0]/r[0]>.5&&b[1]/r[1]<.35&&x[2].c>x[2].o&&x[2].c>(x[0].o+x[0].c)/2)return "Morning Star candidate";
+   if(x[0].c>x[0].o&&b[0]/r[0]>.5&&b[1]/r[1]<.35&&x[2].c<x[2].o&&x[2].c<(x[0].o+x[0].c)/2)return "Evening Star candidate";
+  }
   if(body/range>.85)return "Marubozu-like";
   return "No strong candle pattern";
  }
@@ -248,10 +255,13 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const rows=m.rows,cl=rows.map(x=>x.c),last=rows[rows.length-1],p=pivots(rows),ph=p.highs.slice(-2),pl=p.lows.slice(-2),atrNow=atr(rows,14)||0;
   const hhhl=ph.length===2&&pl.length===2&&ph[1].p>ph[0].p&&pl[1].p>pl[0].p;
   const lhll=ph.length===2&&pl.length===2&&ph[1].p<ph[0].p&&pl[1].p<pl[0].p;
-  const priorH=p.highs.length>1?p.highs[p.highs.length-2]:null,priorL=p.lows.length>1?p.lows[p.lows.length-2]:null;
+  const priorH=p.highs.length?p.highs[p.highs.length-1]:null,priorL=p.lows.length?p.lows[p.lows.length-1]:null;
   const bosUp=!!priorH&&last.c>priorH.p,bosDown=!!priorL&&last.c<priorL.p;
   const chochUp=bosUp&&lhll,chochDown=bosDown&&hhhl;
   const tolerance=Math.max(atrNow*.12,last.c*.00015);
+  const srFlipUp=!!priorH&&last.l<=priorH.p+tolerance&&last.c>priorH.p;
+  const srFlipDown=!!priorL&&last.h>=priorL.p-tolerance&&last.c<priorL.p;
+  const roundBase=Math.round(last.c/50)*50,roundLevels=[roundBase-50,roundBase,roundBase+50];
   const eqh=ph.length===2&&Math.abs(ph[1].p-ph[0].p)<=tolerance,eql=pl.length===2&&Math.abs(pl[1].p-pl[0].p)<=tolerance;
   const sweepHigh=!!priorH&&last.h>priorH.p&&last.c<priorH.p,sweepLow=!!priorL&&last.l<priorL.p&&last.c>priorL.p;
   const rangeRows=rows.slice(-50),rangeHigh=Math.max(...rangeRows.map(x=>x.h)),rangeLow=Math.min(...rangeRows.map(x=>x.l)),midpoint=(rangeHigh+rangeLow)/2;
@@ -289,6 +299,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const lines=[
    ["Structure",hhhl?"HH / HL bullish":lhll?"LH / LL bearish":"Range / mixed", "BOS "+(bosUp?"up":bosDown?"down":"none")+" · CHoCH "+(chochUp?"bullish":chochDown?"bearish":"none")],
    ["Liquidity", "EQH "+(eqh?"yes":"no")+" / EQL "+(eql?"yes":"no"),"Sweep "+(sweepLow?"sell-side reclaimed":sweepHigh?"buy-side rejected":"none confirmed")],
+   ["S/R flip + round levels","Resistance→support "+(srFlipUp?"candidate":"no")+" · Support→resistance "+(srFlipDown?"candidate":"no"),"Nearest $50 levels: "+roundLevels.map(fmt).join(" / ")],
    ["Order blocks / S&D",ob,obLevel?fmt(obLevel[0])+" – "+fmt(obLevel[1]):"No qualified recent displacement zone"],
    ["Fair Value Gap",fvg,fvgLevel?fmt(fvgLevel[0])+" – "+fmt(fvgLevel[1]):"No 3-candle gap"],
    ["Premium / Discount",zone,"50% range "+fmt(midpoint)+" · "+(zone==="DISCOUNT"?"discount buys preferred":zone==="PREMIUM"?"premium sells preferred":"mid-range")],
@@ -298,6 +309,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ["Bollinger / VWAP","BB "+(bb?"L "+fmt(bb.lower)+" / U "+fmt(bb.upper):"n/a"),"VWAP "+(vwap!==null?fmt(vwap):"not shown: volume absent/unverified")],
    ["Candles / patterns",patternText,"Divergence "+(bullDiv?"bullish":bearDiv?"bearish":"none confirmed")],
    ["Sessions","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Times from live timezone clock; session overlap only when both open"],
+   ["Trendlines / channels / formations","Swing highs: "+(ph.length===2?(ph[1].p>ph[0].p?"rising":ph[1].p<ph[0].p?"falling":"flat"):"insufficient pivots")+" · swing lows: "+(pl.length===2?(pl[1].p>pl[0].p?"rising":pl[1].p<pl[0].p?"falling":"flat"):"insufficient pivots"),"Double tops/bottoms, H&S, triangles, wedges and flags require chart-level visual confirmation"],
    ["News / DXY","NOT CONNECTED","CPI / NFP / FOMC and DXY need a verified external feed or manual check"]
   ];
   const host=$("advancedRows");host.innerHTML="";
