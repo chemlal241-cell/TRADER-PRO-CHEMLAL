@@ -1,32 +1,39 @@
-# TRADER PRO CHEMLAL — V1 Starter
+# TRADER PRO CHEMLAL — V1
 
-A multilingual (English, Arabic, French, Spanish) gold-trading signals dashboard starter.
+A multilingual (English, Arabic, French, Spanish) XAU/USD analysis dashboard.
 
 ## Included
 - Password gate backed by server-side environment variables and signed HttpOnly session cookie.
 - Responsive dark/metallic-gold dashboard.
-- XAUUSD signal panel that safely remains `WAIT` until real market data and a validated signal engine are connected.
-- Position-size calculator.
-- Chart image preview (not AI analysis yet).
-- Strategy templates and multilingual UI.
+- XAUS spot quote panel with explicit freshness handling.
+- Historical XAU/USD OHLC candle loader using XAUS `/api/v1/chart` (5m, 15m, 1h).
+- Candle validation (OHLC integrity, minimum history, duplicate removal, last-forming-candle exclusion and stale-data rejection).
+- Deterministic EMA 20/50, RSI 14, MACD 12/26/9 and ATR 14 calculations.
+- Multi-timeframe directional bias display. The final signal deliberately remains WAIT until an independent out-of-sample backtest and forward validation are implemented and pass.
+- Risk Lab, browser-local Trade Journal, manual Risk Checklist and user-entered R-multiple statistics calculator.
 
-## Deploy free-tier
-1. Create a GitHub repository and upload these files.
-2. Import the repository into Vercel.
-3. In Vercel → Project → Settings → Environment Variables, add:
-   - `APP_PASSWORD`: your own long unique password.
-   - `SESSION_SECRET`: a random secret with at least 32 characters.
-4. Redeploy after setting variables.
-5. Open the deployed URL and sign in.
+## Deploy
+1. Import this repository into Vercel.
+2. In Vercel → Project → Settings → Environment Variables, set `APP_PASSWORD` and `SESSION_SECRET` (at least 32 random characters).
+3. Redeploy after environment changes.
 
-## Important status
-This is a starter UI, not a finished live trading product. It does **not** fetch live XAUUSD prices, generate validated BUY/SELL signals, fetch news/calendar, or call an AI model yet. Those require a market-data provider and backend signal/AI integrations. The interface intentionally shows WAIT rather than fabricating market data or trade calls.
+## Candle data source
+The candle engine requests:
+- `https://xaus.com/api/v1/chart?symbol=xau&range=5d&interval=5m`
+- `https://xaus.com/api/v1/chart?symbol=xau&range=1mo&interval=15m`
+- `https://xaus.com/api/v1/chart?symbol=xau&range=3mo&interval=1h`
 
-The calculator is a rough sizing estimate. Verify contract size, tick value, account currency, and broker lot rules. No broker connection or order execution is included. Keep any future provider keys server-side only.
+XAUS documents this as a multi-asset OHLCV endpoint backed by a Yahoo Finance proxy. Treat it as a reference XAU/USD series, not the exact quote or execution price of a particular broker. The browser must be able to reach the public endpoint. If any timeframe is missing, invalid or stale, the analysis returns WAIT.
 
-## Next implementation milestones
-1. Add a reliable XAUUSD quote/candlestick provider and stale-data checks.
-2. Implement deterministic, testable signal rules across timeframes with entry/SL/TP and risk/reward.
-3. Add economic calendar/news sources and citations/timestamps.
-4. Add server-side AI chart analysis and chat with rate limits.
-5. Add backtesting, audit logs, and monitoring before considering any live use.
+## Important limitations
+- The directional bias is a technical summary, not a probability or proven trading edge.
+- No automatic BUY/SELL recommendation is enabled yet. A separate walk-forward / out-of-sample backtest, realistic spread/slippage assumptions and forward paper testing are required before enabling actionable signals.
+- XAU/USD spot has no single consolidated exchange volume; volume values must not be treated as authoritative market-wide volume.
+- No broker connection or order execution is included.
+- The chart image analyzer and AI assistant are not connected to an AI model.
+- News and economic-calendar feeds are not connected.
+- The position-size calculator is an estimate; verify contract size, tick value, account currency and broker lot rules.
+- Trade Journal data remains in the current browser and is not synced.
+
+## Next validation milestone
+Implement a reproducible candle-based strategy backtest with no look-ahead bias, separated training/validation windows, conservative same-bar stop/target handling, spread/slippage assumptions, and metrics (trade count, win rate, expectancy, profit factor, max drawdown). Only enable BUY/SELL if the out-of-sample test passes explicit minimum criteria; otherwise keep WAIT.
