@@ -37,7 +37,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   try{
    const res=await fetch("https://xaus.com/api/v1/spot?compact=1",{cache:"no-store"});
    const data=await res.json();
-   const generated=Date.parse(data.updated_at||"");
+   const generated=Date.parse(data.price_as_of||data.data_state?.as_of||data.updated_at||"");
    const age=Number.isFinite(generated)?Math.max(0,(Date.now()-generated)/1000):Infinity;
    const status=data?.data_state?.status;
    const fresh=status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
