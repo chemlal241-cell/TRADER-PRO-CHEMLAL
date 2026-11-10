@@ -40,6 +40,32 @@ button,input,select,textarea{font:inherit}button{cursor:pointer;transition:trans
 [dir=rtl] .top,[dir=rtl] .hero{flex-direction:row-reverse}[dir=rtl] body{text-align:right}[dir=rtl] .list div{flex-direction:row-reverse}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.wrap{padding:14px}.top{align-items:flex-start;flex-direction:column}.wide{grid-column:auto}}
 @media(max-width:560px){.wrap{padding:10px}.top{padding:13px;border-radius:16px}.actions{width:100%}.actions select{flex:1}.tabs{top:5px;gap:4px;padding:6px}.tab{padding:9px 10px;font-size:11px}.metrics{grid-template-columns:1fr 1fr}.metrics .metric:last-child{grid-column:1/-1}.two,.module-grid{grid-template-columns:1fr}.card,.module-card{border-radius:15px;padding:15px}.chart{height:240px;min-height:220px}}
+
+/* Premium terminal layout: persistent desktop sidebar, responsive mobile navigation */
+@media(min-width:901px){
+ #app.wrap{max-width:1600px;padding:26px clamp(18px,2.5vw,38px)}
+ #app .top,#app > section,#app > .footer{margin-left:218px}
+ #app .tabs{position:fixed;left:20px;top:24px;bottom:24px;width:184px;height:calc(100vh - 48px);overflow-y:auto;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;padding:14px 10px;border-radius:20px;background:linear-gradient(180deg,#141d2aF5,#0b111bf5);border:1px solid #80643788;box-shadow:0 18px 55px #0009;z-index:50}
+ #app .tab{width:100%;min-height:43px;text-align:left;padding:11px 13px;border:1px solid transparent;border-radius:11px;font-size:12px;letter-spacing:.15px}
+ #app .tab.active{border-color:#c39a51;background:linear-gradient(110deg,#60471f99,#2a2419);color:#ffe6b0;box-shadow:inset 3px 0 #e0b85f,0 5px 18px #0005}
+ #app .top{margin-bottom:20px}
+ #app > section{scroll-margin-top:24px}
+ #app .footer{padding:18px 0}
+ [dir=rtl] #app .top,[dir=rtl] #app > section,[dir=rtl] #app > .footer{margin-left:0;margin-right:218px}
+ [dir=rtl] #app .tabs{left:auto;right:20px}
+ [dir=rtl] #app .tab{text-align:right}
+ [dir=rtl] #app .tab.active{box-shadow:inset -3px 0 #e0b85f,0 5px 18px #0005}
+}
+.top{border-color:#66502d88}
+.logo{background:linear-gradient(145deg,#70521e88,#171b22);box-shadow:inset 0 1px #ffffff22,0 5px 24px #c49a4630}
+.card,.module-card{border-color:#3a4658}
+.signal{position:relative}
+.signal:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 28px #d6ad590a}
+@media(max-width:900px){
+ #app .tabs{position:sticky;top:5px;z-index:30;flex-direction:row}
+ #app .tab{width:auto;flex:0 0 auto}
+}
+
 </style></head>
 <body>
 <div id="login" class="wrap login card">
