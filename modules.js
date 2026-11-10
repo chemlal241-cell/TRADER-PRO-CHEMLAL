@@ -109,16 +109,19 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  root.append(panel);
  const $=id=>panel.querySelector("#"+id);
  panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>Smart Money Concepts · Advanced Strategy Matrix</h2><p class="module-muted">Computed from the same validated closed OHLC candles. These are rule-based observations, not guaranteed setups or a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
- function updateLivePanel(signal,description,biasLabel){
+ function updateLivePanel(signal,description,biasLabel,plan){
   const strong=root.querySelector(".card .signal strong");
   const desc=root.querySelector('.card .signal [data-i="waitDesc"]');
-  if(strong)strong.textContent=signal;
+  if(strong){strong.textContent=signal;strong.style.color=plan?(plan.side==="BUY"?"#35dc85":"#ff777d"):"#f3d99d";}
   if(desc)desc.textContent=description;
+  const levels=root.querySelectorAll(".card .metrics .metric b");
+  const values=plan?[plan.entry,plan.sl,plan.tp1,plan.tp2,plan.tp3]:["—","—","—","—","—"];
+  levels.forEach((el,i)=>{if(el)el.textContent=plan&&Number.isFinite(values[i])?"$"+fmt(values[i]):"—"});
   const context=root.querySelectorAll(".card")[1];
   if(context){
-   const values=context.querySelectorAll(".list b");
-   if(values[0])values[0].textContent=biasLabel||"—";
-   if(values[3])values[3].textContent="NOT VALIDATED";
+   const rows=context.querySelectorAll(".list b");
+   if(rows[0])rows[0].textContent=biasLabel||"—";
+   if(rows[3])rows[3].textContent=plan?"PAPER CANDIDATE · NOT VALIDATED":"NOT VALIDATED";
   }
  }
  async function getFreshSpot(){
@@ -313,7 +316,13 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   lines.forEach(a=>{const tr=document.createElement("tr");a.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;tr.append(td)});body.append(tr)});
   table.append(body);host.append(table);
   $("advancedStatus").textContent="ANALYSIS UPDATED · "+direction+" · confluence "+score+"/"+total+" · "+(adxStrong?"ADX trend strength confirmed":"ADX trend strength weak/unknown")+" (not probability)";
-  $("advancedPlan").textContent=rrReady&&risk>0&&(side==="BUY"?bullSweepShift||bosUp:bearSweepShift||bosDown)?"CANDIDATE ONLY · "+side+" · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · R:R 1:1 / 1:2 / 1:3 targets · confluence "+score+"/"+total+" · NOT A LIVE SIGNAL; WAIT remains active pending out-of-sample backtest and forward paper validation.":"WAIT · minimum confluence, structure confirmation, or valid invalidation is missing. No entry/SL/TP recommendation.";
+  const structureTrigger=side==="BUY"?(bullSweepShift||bosUp||srFlipUp):(bearSweepShift||bosDown||srFlipDown);
+  const h1Bull=h.ema20>h.ema50,m15Bull=m.ema20>m.ema50&&m.macd?.hist>0&&m.rsi>50;
+  const h1Bear=h.ema20<h.ema50,m15Bear=m.ema20<m.ema50&&m.macd?.hist<0&&m.rsi<50;
+  const aligned=side==="BUY"?(h1Bull&&m15Bull):(h1Bear&&m15Bear);
+  const candidate=!!(side&&rrReady&&risk>0&&atrNow>0&&structureTrigger&&aligned&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" · 1h/15m aligned · NOT VALIDATED; no live trade recommendation.":"WAIT · requires 8/14 confluence, 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
+  return candidate?{side,entry,sl,tp1,tp2,tp3,score,total,atr:atrNow,time:m.last?.t||last.t}:null;
  }
 
  function showRows(items){
@@ -344,7 +353,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     return {tf:tf.name,count:closed.length,last,age,ema20:ema(closes,20),ema50:ema(closes,50),rsi:rsi(closes),macd:m,atr:atr(closed),rows:closed};
    }));
    showRows(results);
-   analyzeAdvanced(results);
+   const candidate=analyzeAdvanced(results);
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
    if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
    const up=h.ema20>h.ema50,down=h.ema20<h.ema50;
@@ -357,8 +366,13 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("candleReason").textContent="1h EMA20/50: "+(up?"bullish":down?"bearish":"flat")+". 15m MACD/RSI: "+(momUp?"bullish momentum":momDown?"bearish momentum":"mixed momentum")+". 5m last closed candle: "+new Date(l.last.t).toLocaleString()+".";
    $("candleQuality").textContent="Valid bars: 5m "+l.count+" · 15m "+m.count+" · 1h "+h.count+" | Oldest last-closed age: "+Math.round(candleAge/60000)+" min. Confluence is not a probability.";
    const spot=await getFreshSpot();
-   if(spot.ok){
-    updateLivePanel("WAIT · "+bias+" BIAS","Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz and verified 5m/15m/1h candles. Directional bias only; BUY/SELL remains disabled pending independent strategy validation.",bias);
+   const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
+   if(spotNearCandidate){
+    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2). " USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Paper-test only.",bias,candidate);
+   }else if(candidate){
+    updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
+   }else if(spot.ok){
+    updateLivePanel("WAIT · "+bias+" BIAS","Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz and verified 5m/15m/1h candles. Strategy conditions are not sufficiently aligned for a BUY/SELL candidate.",bias);
    }else{
     updateLivePanel("WAIT","Candles are verified, but no fresh XAUS spot quote is confirmed. No trade recommendation.",bias);
    }
