@@ -54,3 +54,10 @@ The Live Signals candle engine also calculates rule-based observations from vali
 - The Live Signals overview displays up to 24 recent headlines, filterable by category, with links opening the original Investing.com article.
 - The panel refreshes every five minutes while the dashboard is open and refreshes when the tab becomes visible again. Vercel caches the endpoint response for five minutes.
 - RSS availability and publication times depend on Investing.com. This is a news feed, not the official real-time economic calendar; the calendar remains a separate external link. Headlines do not generate BUY/SELL signals.
+
+
+## Expanded strategy confluence engine
+- Combines the original candle indicators with market structure, BOS/CHoCH, liquidity sweeps, OB/S&D, FVG, Premium/Discount, chronological Fibonacci retracements and 1.272/1.618 extensions, S/R flips, round levels, candlestick patterns, EMA/SuperTrend/ADX/Ichimoku, RSI/MACD/Stochastic, Bollinger Bands, VWAP/volume when supplied, divergence and trading sessions.
+- Adds a stricter 14-factor directional confluence count, ADX context, VWAP control, Bollinger outer-band stretch and a dedicated sweep/reclaim + CHoCH confirmation row. Candidate plans require minimum confluence and structure confirmation; they remain explicitly non-live and WAIT stays in force pending independent out-of-sample backtesting and forward paper validation.
+- Investing.com headlines are acknowledged as linked in the news panel, but they are not an automated event-risk filter. The economic calendar and live DXY series remain unconnected. Chart patterns such as H&S, triangles, wedges and flags still require visual confirmation.
+- Fibonacci levels are displayed only when the latest confirmed pivots form a chronological swing leg; otherwise the engine reports insufficient swing structure.
