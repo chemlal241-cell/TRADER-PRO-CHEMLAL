@@ -266,7 +266,10 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const sweepHigh=!!priorH&&last.h>priorH.p&&last.c<priorH.p,sweepLow=!!priorL&&last.l<priorL.p&&last.c>priorL.p;
   const rangeRows=rows.slice(-50),rangeHigh=Math.max(...rangeRows.map(x=>x.h)),rangeLow=Math.min(...rangeRows.map(x=>x.l)),midpoint=(rangeHigh+rangeLow)/2;
   const zone=last.c<midpoint?"DISCOUNT":last.c>midpoint?"PREMIUM":"EQUILIBRIUM";
-  const fib=ph.length&&pl.length?{r50:(ph[1].p+pl[pl.length-1].p)/2,r618:ph[1].p-(ph[1].p-pl[pl.length-1].p)*.618,r705:ph[1].p-(ph[1].p-pl[pl.length-1].p)*.705,r786:ph[1].p-(ph[1].p-pl[pl.length-1].p)*.786}:null;
+  const swingHigh=ph[ph.length-1],swingLow=pl[pl.length-1];
+  const bullishLeg=!!(swingHigh&&swingLow&&swingLow.i<swingHigh.i&&swingHigh.p>swingLow.p);
+  const bearishLeg=!!(swingHigh&&swingLow&&swingHigh.i<swingLow.i&&swingHigh.p>swingLow.p);
+  const fib=bullishLeg?{direction:"bullish",r50:swingHigh.p-(swingHigh.p-swingLow.p)*.50,r618:swingHigh.p-(swingHigh.p-swingLow.p)*.618,r705:swingHigh.p-(swingHigh.p-swingLow.p)*.705,r786:swingHigh.p-(swingHigh.p-swingLow.p)*.786,e1272:swingLow.p+(swingHigh.p-swingLow.p)*1.272,e1618:swingLow.p+(swingHigh.p-swingLow.p)*1.618}:bearishLeg?{direction:"bearish",r50:swingLow.p+(swingHigh.p-swingLow.p)*.50,r618:swingLow.p+(swingHigh.p-swingLow.p)*.618,r705:swingLow.p+(swingHigh.p-swingLow.p)*.705,r786:swingLow.p+(swingHigh.p-swingLow.p)*.786,e1272:swingHigh.p-(swingHigh.p-swingLow.p)*.272,e1618:swingHigh.p-(swingHigh.p-swingLow.p)*.618}:null;
   let fvg="None",fvgLevel=null;
   for(let i=rows.length-1;i>=2;i--){if(rows[i].l>rows[i-2].h){fvg="Bullish FVG";fvgLevel=[rows[i-2].h,rows[i].l];break}if(rows[i].h<rows[i-2].l){fvg="Bearish FVG";fvgLevel=[rows[i].h,rows[i-2].l];break}}
   let ob="None",obLevel=null;
@@ -281,10 +284,15 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const bullDiv=p.lows.length>=2&&rsiVal!==null&&p.lows[p.lows.length-1].p<p.lows[p.lows.length-2].p&&rsi(closes.slice(0,p.lows[p.lows.length-1].i+1))>rsi(closes.slice(0,p.lows[p.lows.length-2].i+1));
   const bearDiv=p.highs.length>=2&&rsiVal!==null&&p.highs[p.highs.length-1].p>p.highs[p.highs.length-2].p&&rsi(closes.slice(0,p.highs[p.highs.length-1].i+1))<rsi(closes.slice(0,p.highs[p.highs.length-2].i+1));
   const upTrend=hhhl||bosUp||ema9>ema21&&ema21>ema50,downTrend=lhll||bosDown||ema9<ema21&&ema21<ema50;
-  const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",ema9>ema21,rsiVal>50,macdVal?.hist>0,bullDiv].filter(Boolean).length;
-  const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",ema9<ema21,rsiVal<50,macdVal?.hist<0,bearDiv].filter(Boolean).length;
+  const bullSweepShift=sweepLow&&chochUp&&last.c>last.o;
+  const bearSweepShift=sweepHigh&&chochDown&&last.c<last.o;
+  const adxStrong=Number.isFinite(adxVal)&&adxVal>=20;
+  const vwapBull=vwap!==null&&last.c>vwap,vwapBear=vwap!==null&&last.c<vwap;
+  const bbStretchBull=!!bb&&last.c<bb.lower,bbStretchBear=!!bb&&last.c>bb.upper;
+  const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",ema9>ema21,rsiVal>50,macdVal?.hist>0,bullDiv,bullSweepShift,vwapBull,adxStrong].filter(Boolean).length;
+  const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",ema9<ema21,rsiVal<50,macdVal?.hist<0,bearDiv,bearSweepShift,vwapBear,adxStrong].filter(Boolean).length;
   const direction=bullish>bearish?"BUY BIAS":bearish>bullish?"SELL BIAS":"MIXED";
-  const score=Math.max(bullish,bearish),total=11,rrReady=score>=7&&Math.abs(bullish-bearish)>=3;
+  const score=Math.max(bullish,bearish),total=14,rrReady=score>=8&&Math.abs(bullish-bearish)>=4;
   const side=bullish>bearish?"BUY":bearish>bullish?"SELL":null;
   const entry=last.c,invalid=side==="BUY"?(priorL?.p??last.l-atrNow):(priorH?.p??last.h+atrNow);
   const risk=side?Math.abs(entry-invalid):0;
@@ -303,22 +311,23 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ["Order blocks / S&D",ob,obLevel?fmt(obLevel[0])+" – "+fmt(obLevel[1]):"No qualified recent displacement zone"],
    ["Fair Value Gap",fvg,fvgLevel?fmt(fvgLevel[0])+" – "+fmt(fvgLevel[1]):"No 3-candle gap"],
    ["Premium / Discount",zone,"50% range "+fmt(midpoint)+" · "+(zone==="DISCOUNT"?"discount buys preferred":zone==="PREMIUM"?"premium sells preferred":"mid-range")],
-   ["Fibonacci / OTE",fib?"0.50 "+fmt(fib.r50)+" · 0.618 "+fmt(fib.r618)+" · 0.705 "+fmt(fib.r705)+" · 0.786 "+fmt(fib.r786):"Not enough confirmed swings","Extensions 1.272 / 1.618 require a validated swing anchor"],
+   ["Fibonacci / OTE",fib?fib.direction+" · 0.50 "+fmt(fib.r50)+" · 0.618 "+fmt(fib.r618)+" · 0.705 "+fmt(fib.r705)+" · 0.786 "+fmt(fib.r786):"No chronological confirmed swing leg","Extensions 1.272 "+fmt(fib?.e1272)+" · 1.618 "+fmt(fib?.e1618)],
+   ["Sweep + reclaim + CHoCH",bullSweepShift?"Bullish sell-side sweep → reclaim → CHoCH":bearSweepShift?"Bearish buy-side sweep → rejection → CHoCH":"No complete sweep/reclaim + CHoCH trigger","A liquidity sweep alone is not an entry trigger"],
    ["Trend indicators","EMA9 "+fmt(ema9)+" · EMA21 "+fmt(ema21)+" · EMA50 "+fmt(ema50)+" · EMA200 "+fmt(ema200),"SuperTrend "+(st?.direction||"n/a")+" · ADX "+fmt(adxVal)],
    ["Ichimoku / Momentum","Tenkan "+fmt(ichi?.tenkan)+" · Kijun "+fmt(ichi?.kijun),"RSI "+fmt(rsiVal)+" · MACD hist "+fmt(macdVal?.hist)+" · Stoch "+fmt(stoch)],
-   ["Bollinger / VWAP","BB "+(bb?"L "+fmt(bb.lower)+" / U "+fmt(bb.upper):"n/a"),"VWAP "+(vwap!==null?fmt(vwap):"not shown: volume absent/unverified")],
+   ["Bollinger / VWAP","BB "+(bb?"L "+fmt(bb.lower)+" / U "+fmt(bb.upper):"n/a")+" · stretch "+(bbStretchBull?"below lower":bbStretchBear?"above upper":"no outer-band stretch"),"VWAP "+(vwap!==null?fmt(vwap)+" · control "+(vwapBull?"buyers above VWAP":vwapBear?"sellers below VWAP":"at VWAP"):"not shown: volume absent/unverified")],
    ["Candles / patterns",patternText,"Divergence "+(bullDiv?"bullish":bearDiv?"bearish":"none confirmed")],
    ["Sessions","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Times from live timezone clock; session overlap only when both open"],
    ["Trendlines / channels / formations","Swing highs: "+(ph.length===2?(ph[1].p>ph[0].p?"rising":ph[1].p<ph[0].p?"falling":"flat"):"insufficient pivots")+" · swing lows: "+(pl.length===2?(pl[1].p>pl[0].p?"rising":pl[1].p<pl[0].p?"falling":"flat"):"insufficient pivots"),"Double tops/bottoms, H&S, triangles, wedges and flags require chart-level visual confirmation"],
-   ["News / DXY","NOT CONNECTED","CPI / NFP / FOMC and DXY need a verified external feed or manual check"]
+   ["News / DXY","Investing.com headlines feed linked in News panel; not an event-risk filter","Economic calendar/CPI/NFP/FOMC schedule and DXY live series are not connected; avoid entries around high-impact releases"]
   ];
   const host=$("advancedRows");host.innerHTML="";
   const table=document.createElement("table");table.className="module-table";
   const body=document.createElement("tbody");
   lines.forEach(a=>{const tr=document.createElement("tr");a.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;tr.append(td)});body.append(tr)});
   table.append(body);host.append(table);
-  $("advancedStatus").textContent="ANALYSIS UPDATED · "+direction+" · confluence "+score+"/"+total+" (not probability)";
-  $("advancedPlan").textContent=rrReady&&risk>0?"CANDIDATE ONLY · "+side+" · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · WAIT remains active until independent backtest + forward paper validation pass.":"WAIT · insufficient independent confluence, unclear invalidation, or no validated edge. No entry/SL/TP recommendation.";
+  $("advancedStatus").textContent="ANALYSIS UPDATED · "+direction+" · confluence "+score+"/"+total+" · "+(adxStrong?"ADX trend strength confirmed":"ADX trend strength weak/unknown")+" (not probability)";
+  $("advancedPlan").textContent=rrReady&&risk>0&&(side==="BUY"?bullSweepShift||bosUp:bearSweepShift||bosDown)?"CANDIDATE ONLY · "+side+" · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · R:R 1:1 / 1:2 / 1:3 targets · confluence "+score+"/"+total+" · NOT A LIVE SIGNAL; WAIT remains active pending out-of-sample backtest and forward paper validation.":"WAIT · minimum confluence, structure confirmation, or valid invalidation is missing. No entry/SL/TP recommendation.";
  }
 
  function showRows(items){
