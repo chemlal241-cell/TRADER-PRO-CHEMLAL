@@ -321,7 +321,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const h1Bear=h.ema20<h.ema50,m15Bear=m.ema20<m.ema50&&m.macd?.hist<0&&m.rsi<50;
   const aligned=side==="BUY"?(h1Bull&&m15Bull):(h1Bear&&m15Bear);
   const candidate=!!(side&&rrReady&&risk>0&&atrNow>0&&structureTrigger&&aligned&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
-  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" · 1h/15m aligned · NOT VALIDATED; no live trade recommendation.":"WAIT · requires 8/14 confluence, 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" · 1h/15m aligned · Historical win rate: N/A (no validated strategy backtest yet) · NOT VALIDATED; paper-only.":"WAIT · requires 8/14 confluence, 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
   return candidate?{side,entry,sl,tp1,tp2,tp3,score,total,atr:atrNow,time:m.last?.t||last.t}:null;
  }
 
@@ -368,7 +368,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const spot=await getFreshSpot();
    const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
    if(spotNearCandidate){
-    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Paper-test only.",bias,candidate);
+    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Historical strategy win rate: N/A (no validated backtest sample). Paper-test only.",bias,candidate);
    }else if(candidate){
     updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
    }else if(spot.ok){
