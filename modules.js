@@ -440,3 +440,64 @@ render();
  load();setInterval(()=>{if(!document.hidden)load()},300000);
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
 })(); 
+
+
+/* Strategy Library catalogue — structured templates for XAUUSD; educational, not trade calls */
+(function(){
+ const root=document.querySelector("#strategy");
+ if(!root||root.dataset.catalogReady)return;
+ root.dataset.catalogReady="1";
+ const intro=root.querySelector(":scope > .card");
+ if(intro)intro.innerHTML='<h2>Strategy library · XAU/USD</h2><p class="notice">18 structured strategy templates across Smart Money Concepts, trend & momentum, price action, and market context. Each template explains its method, confirmation and invalidation. Select a category to explore.</p><div class="module-muted">Important: indicator observations are calculated only when validated candles are available; chart formations and event context may require manual confirmation. No template independently authorizes a live BUY/SELL.</div>';
+ const panel=document.createElement("article");
+ panel.className="module-card wide";
+ panel.style.marginTop="14px";
+ panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Strategy Library · 18 setups</h2><span class="module-muted">XAU/USD · educational playbook</span></div>'+
+ '<div id="slFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0"></div>'+
+ '<div id="slCount" class="module-muted" style="margin-bottom:10px"></div>'+
+ '<div id="slCards" class="module-grid"></div>'+
+ '<p class="module-muted" style="margin:14px 0 0">Risk rule: define invalidation and position size before entry. Avoid trading during unverified high-impact events. Backtest with spread/slippage and forward-test on demo before considering any strategy.</p>';
+ root.prepend(panel);
+ const strategies=[
+  {cat:"smc",name:"Market Structure · BOS / CHoCH",status:"Candle engine",method:"Track confirmed swing highs/lows; BOS is a break in the prevailing swing, while CHoCH is an early structural shift.",confirm:"Wait for a closed candle beyond the relevant swing, then assess retest and higher-timeframe alignment.",invalid:"A close back through the broken structure or a fresh opposing swing invalidates the idea.",tf:"15m / 1h / 4h"},
+  {cat:"smc",name:"Liquidity Sweep & Reclaim",status:"Candle engine · candidate",method:"Mark equal highs/lows and prior session extremes; watch for a wick through liquidity followed by a close back inside.",confirm:"Require reclaim plus a subsequent CHoCH/BOS and clear risk location; sweep alone is not an entry.",invalid:"Price accepts beyond the swept level or fails to reclaim it.",tf:"5m / 15m with 1h context"},
+  {cat:"smc",name:"Order Blocks · Supply & Demand",status:"Candle engine · potential zones",method:"Identify the last opposing candle before a strong displacement that breaks a meaningful level; treat the candle range as a potential zone.",confirm:"Look for return to zone, rejection, structure shift and acceptable reward-to-risk.",invalid:"A decisive close through the zone; zones are candidates, not guaranteed institutional orders.",tf:"15m / 1h / 4h"},
+  {cat:"smc",name:"Fair Value Gap · 3-candle imbalance",status:"Candle engine",method:"Detect a three-candle gap where candle 1 high/low does not overlap candle 3 low/high.",confirm:"Prefer a retrace into the gap aligned with trend, structure and a rejection trigger.",invalid:"Full close-through or opposing structure break; not every gap must fill.",tf:"5m / 15m / 1h"},
+  {cat:"smc",name:"Premium / Discount",status:"Candle engine",method:"Use the midpoint of a defined dealing range; below midpoint is discount, above midpoint is premium.",confirm:"Seek longs in discount or shorts in premium only with structure and a valid trigger.",invalid:"The dealing range changes after a new confirmed swing; never use midpoint alone.",tf:"15m / 1h / 4h"},
+  {cat:"smc",name:"Fibonacci OTE & Extensions",status:"Candle engine · swing dependent",method:"Anchor Fibonacci to a confirmed chronological swing leg; monitor 0.50, 0.618, 0.705 and 0.786 retracements, plus 1.272/1.618 extensions.",confirm:"Require confluence with structure, OB/FVG or liquidity and a candle trigger inside the zone.",invalid:"The swing anchor is broken or the assumed impulse structure fails.",tf:"15m / 1h / 4h"},
+  {cat:"smc",name:"S/R Flip & Round Numbers",status:"Candle engine · candidate",method:"Track prior support/resistance after a break and retest; note nearby $50 round-number levels as attention zones.",confirm:"Require a close through the level and a successful retest/rejection; combine with trend context.",invalid:"Price reclaims the old side and closes back through the level.",tf:"5m / 15m / 1h"},
+  {cat:"trend",name:"EMA Trend Stack · 9 / 21 / 50 / 200",status:"Candle engine",method:"Use EMA alignment and slope to classify trend and pullback context; 200 EMA is a broad regime reference.",confirm:"Look for aligned stack, pullback toward 9/21 or 50, then a closed-candle continuation trigger.",invalid:"EMA stack collapses or price closes through the structural swing against the position.",tf:"15m / 1h / 4h"},
+  {cat:"trend",name:"SuperTrend + ADX Filter",status:"Candle engine · approximation",method:"Use SuperTrend direction as a trend-following guide and ADX as trend-strength context; ADX does not indicate direction.",confirm:"Trade only with directional agreement and adequate ADX strength, then wait for a pullback/continuation trigger.",invalid:"SuperTrend flips or price invalidates the latest swing; avoid low-ADX chop.",tf:"15m / 1h"},
+  {cat:"trend",name:"Ichimoku Cloud",status:"Candle engine",method:"Compare price with Kumo and Tenkan/Kijun alignment to assess trend, balance and dynamic support/resistance.",confirm:"Prefer price above cloud with Tenkan above Kijun for bullish continuation, or inverse for bearish; wait for close.",invalid:"Price returns into/through cloud and Tenkan/Kijun alignment reverses.",tf:"1h / 4h"},
+  {cat:"trend",name:"RSI + MACD + Stochastic",status:"Candle engine",method:"Use RSI for momentum regime, MACD histogram/line for momentum change, and Stochastic for timing in ranges.",confirm:"Require agreement with structure; use oscillator extremes only as context, never as a standalone reversal signal.",invalid:"Momentum diverges against the setup or structure breaks.",tf:"5m / 15m / 1h"},
+  {cat:"trend",name:"Bollinger Bands · Volatility",status:"Candle engine",method:"Use band expansion/contraction and closes outside bands to assess volatility; outer-band touches can persist in strong trends.",confirm:"For mean reversion, require rejection and range context; for breakout, require expansion and retest.",invalid:"Band-walk/strong trend invalidates fading an outer-band touch; breakout failure returns inside range.",tf:"5m / 15m / 1h"},
+  {cat:"trend",name:"VWAP + Volume Context",status:"Conditional · volume required",method:"Compare price with session/rolling VWAP only when source volume is valid and meaningful.",confirm:"Use VWAP reclaim/rejection with structure and genuine volume confirmation.",invalid:"Price accepts on the opposite side; if volume is missing or synthetic, do not use VWAP.",tf:"5m / 15m"},
+  {cat:"price",name:"Candlestick Price Action",status:"Candle engine · candidates",method:"Recognize engulfing, pin bar/hammer, shooting star, doji, marubozu and multi-candle reversal candidates at meaningful levels.",confirm:"Pattern must close, occur at a pre-marked zone and have follow-through/structure confirmation.",invalid:"Pattern extreme is broken or next candles show no follow-through.",tf:"5m / 15m / 1h"},
+  {cat:"price",name:"RSI Divergence",status:"Candle engine · candidate",method:"Compare confirmed price swing highs/lows with RSI swings for regular bullish/bearish divergence candidates.",confirm:"Wait for a structure shift or break of a local trigger; divergence alone can persist for a long time.",invalid:"Price makes a fresh continuation extreme and momentum resumes with trend.",tf:"15m / 1h"},
+  {cat:"price",name:"Trendlines & Channels",status:"Manual chart confirmation",method:"Connect at least two meaningful swing points and treat a third touch as a possible test, not proof.",confirm:"Require a closed break and retest or a clear rejection at channel boundary.",invalid:"Line is redrawn by new structure or price accepts back inside after breakout.",tf:"15m / 1h / 4h"},
+  {cat:"price",name:"Chart Patterns · Double Top/Bottom, H&S, Triangles, Wedges, Flags",status:"Visual confirmation required",method:"Identify pattern geometry and neckline/boundary from the actual chart; the engine does not certify these formations automatically.",confirm:"Wait for neckline/boundary close, retest and volume/volatility context where available.",invalid:"Pattern boundary fails or price breaks the opposite side.",tf:"15m / 1h / 4h"},
+  {cat:"context",name:"London & New York Sessions",status:"Session clock",method:"Use London and New York session times and overlap as liquidity/context windows, accounting for daylight-saving changes.",confirm:"Trade only when a separate technical setup is present; session open is not a signal.",invalid:"Liquidity is thin, spread widens, or market is range-bound.",tf:"Intraday"},
+  {cat:"context",name:"News · Economic Calendar · DXY Filter",status:"Partially connected / manual",method:"Investing.com headlines are shown in the News panel; the live economic calendar event filter and DXY live series are not connected.",confirm:"Manually verify CPI, NFP, FOMC and high-impact USD events from a trusted calendar; stand aside around unpredictable releases.",invalid:"Event risk is unknown or feed is stale; treat the filter as unavailable.",tf:"Before every session"}
+ ];
+ const cats=[["all","All strategies"],["smc","Smart Money Concepts"],["trend","Trend & indicators"],["price","Price action"],["context","Sessions & news"]];
+ const filters=panel.querySelector("#slFilters"),cards=panel.querySelector("#slCards"),count=panel.querySelector("#slCount");
+ let active="all";
+ function render(){
+  filters.innerHTML="";
+  cats.forEach(([id,label])=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.style.background=active===id?"#d8ad53":"#171d27";b.style.color=active===id?"#17120a":"#eef1f5";b.style.border=active===id?"1px solid #f1d18a":"1px solid #29313e";b.addEventListener("click",()=>{active=id;render()});filters.append(b)});
+  const shown=strategies.filter(x=>active==="all"||x.cat===active);
+  count.textContent=shown.length+" strategy templates · statuses distinguish calculated observations from manual checks and unavailable data.";
+  cards.innerHTML="";
+  shown.forEach(x=>{
+   const article=document.createElement("article");article.className="module-card";
+   const h=document.createElement("h2");h.textContent=x.name;h.style.marginBottom="8px";
+   const badge=document.createElement("div");badge.className="module-muted";badge.textContent="STATUS · "+x.status;badge.style.color="#d8ad53";badge.style.marginBottom="10px";
+   article.append(h,badge);
+   [["Method",x.method],["Confirmation",x.confirm],["Invalidation",x.invalid],["Typical timeframes",x.tf]].forEach(([label,value])=>{
+    const p=document.createElement("p");p.className="module-muted";p.style.margin="7px 0";const strong=document.createElement("b");strong.textContent=label+": ";strong.style.color="#eef1f5";p.append(strong,document.createTextNode(value));article.append(p);
+   });
+   cards.append(article);
+  });
+ }
+ render();
+})();
