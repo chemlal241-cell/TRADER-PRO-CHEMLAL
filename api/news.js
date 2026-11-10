@@ -18,6 +18,14 @@ function tag(xml, name) {
   const match = xml.match(new RegExp("<" + name + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/" + name + "\\s*>", "i"));
   return match ? decodeEntities(match[1]).replace(/<[^>]*>/g, "").trim() : "";
 }
+function severityFor(title, category) {
+  const text = String(title || "").toLowerCase();
+  // High is reserved for clearly identifiable, market-moving US releases/decisions.
+  const high = /\\b(cpi|consumer price index|core pce|pce price index|nonfarm payrolls|non-farm payrolls|nfp|fomc|federal reserve rate decision|fed rate decision|interest rate decision|fed funds rate)\\b/i.test(text);
+  if (high) return { severity: "high", severityLabel: "High" };
+  const medium = category === "macro" || /\\b(federal reserve|fed |powell|inflation|unemployment|jobless claims|gdp|retail sales|ism|manufacturing|central bank|treasury yields)\\b/i.test(text);
+  return medium ? { severity: "medium", severityLabel: "Medium" } : { severity: "low", severityLabel: "Low" };
+}
 function parseFeed(xml, feed) {
   const entries = xml.match(/<item(?:\s[^>]*)?>[\s\S]*?<\/item\s*>/gi) || [];
   return entries.map(entry => {
@@ -31,8 +39,11 @@ function parseFeed(xml, feed) {
     } catch (_) {}
     const timestamp = Date.parse(rawDate);
     if (!title || !url) return null;
+    const severity = severityFor(title, feed.category);
     return { title, url, category: feed.category, categoryLabel: feed.label,
-      published: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : rawDate };
+      published: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : "",
+      publishedRaw: Number.isFinite(timestamp) ? "" : rawDate,
+      severity: severity.severity, severityLabel: severity.severityLabel };
   }).filter(Boolean);
 }
 module.exports = async function (req, res) {
