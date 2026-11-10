@@ -47,3 +47,10 @@ The Live Signals candle engine also calculates rule-based observations from vali
 - Context: candlestick pattern candidates, RSI divergence candidates, London/New York session clock, and VWAP only when usable volume is present.
 - Candidate Entry/SL/TP levels are informational only and remain gated by confluence. No BUY/SELL signal is enabled until independent out-of-sample backtesting and forward paper validation pass.
 - DXY and live economic news are not connected; users must independently verify CPI, NFP and FOMC risk. Chart patterns such as triangles, wedges, flags and head-and-shoulders still require visual confirmation.
+
+
+## Investing.com news integration
+- A serverless `/api/news` endpoint aggregates Investing.com RSS feeds for commodities, forex, economy and economic indicators. No API key is required for these RSS sources.
+- The Live Signals overview displays up to 24 recent headlines, filterable by category, with links opening the original Investing.com article.
+- The panel refreshes every five minutes while the dashboard is open and refreshes when the tab becomes visible again. Vercel caches the endpoint response for five minutes.
+- RSS availability and publication times depend on Investing.com. This is a news feed, not the official real-time economic calendar; the calendar remains a separate external link. Headlines do not generate BUY/SELL signals.
