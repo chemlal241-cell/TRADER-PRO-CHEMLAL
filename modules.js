@@ -385,11 +385,14 @@ render();
 
 /* Investing.com news bridge — RSS is fetched server-side to avoid browser CORS issues */
 (function(){
- const root=document.querySelector("#overview");
- if(!root)return;
+ const app=document.querySelector("#app"),nav=document.querySelector(".tabs");
+ if(!app||!nav)return;
+ const root=document.createElement("section");root.id="news";root.className="module-grid hidden";app.append(root);
+ const tab=document.createElement("button");tab.type="button";tab.className="tab";tab.dataset.tab="news";tab.textContent="News";nav.append(tab);
+ tab.addEventListener("click",()=>{app.querySelectorAll(":scope > section").forEach(x=>x.classList.toggle("hidden",x.id!=="news"));nav.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===tab))});
  const card=document.createElement("article");
  card.className="module-card wide";
- card.style.marginTop="16px";
+ card.style.marginTop="0";
  card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Investing.com · Market News</h2><span id="investingNewsStatus" class="module-muted">Connecting…</span></div>'+
  '<p class="module-muted" style="margin:8px 0 12px">Gold, commodities, forex and macroeconomic headlines · source links open on Investing.com.</p>'+
  '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button type="button" data-news-filter="all">All</button><button type="button" data-news-filter="gold">Commodities</button><button type="button" data-news-filter="forex">Forex</button><button type="button" data-news-filter="macro">Economic</button><button type="button" id="investingNewsRefresh">Refresh</button></div>'+
