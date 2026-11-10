@@ -108,5 +108,110 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  });
 })();
 
+/* Historical OHLC engine: real candles + deterministic indicators; stays WAIT until validated */
+(function(){
+ const root=document.querySelector("#overview");
+ if(!root)return;
+ const panel=document.createElement("article");
+ panel.className="module-card wide";
+ panel.style.marginTop="16px";
+ panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · Historical Candle Engine</h2><span id="candleStatus" class="module-muted">NOT CHECKED</span></div>'+
+ '<p class="module-muted">XAUS OHLC candles · 5m / 15m / 1h · EMA 20/50, RSI 14, MACD 12/26/9, ATR 14. A directional bias is analysis only, not a trade signal.</p>'+
+ '<div class="module-grid" style="margin-top:12px">'+
+ '<div class="module-card"><h2>Multi-timeframe analysis</h2><div id="candleRows" class="module-muted">Press refresh to load real candle data.</div><button id="candleRefresh" style="margin-top:12px">Load / refresh candles</button><p id="candleMeta" class="module-muted">Source: XAUS chart API · Yahoo Finance proxy · XAUUSD reference series.</p></div>'+
+ '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
+ root.append(panel);
+ const $=id=>panel.querySelector("#"+id);
+ const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];
+ const finite=n=>Number.isFinite(n);
+ function normalize(raw){
+  const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
+  return rows.map(x=>{
+   const t=typeof x.t==="number"?(x.t<1e12?x.t*1000:x.t):Date.parse(x.t||x.time||x.timestamp||"");
+   return {t,o:Number(x.o??x.open),h:Number(x.h??x.high),l:Number(x.l??x.low),c:Number(x.c??x.close),v:Number(x.v??x.volume??0)};
+  }).filter(x=>finite(x.t)&&[x.o,x.h,x.l,x.c].every(finite)&&x.o>0&&x.c>0&&x.h>=Math.max(x.o,x.c,x.l)&&x.l<=Math.min(x.o,x.c,x.h))
+   .sort((a,b)=>a.t-b.t).filter((x,i,a)=>i===0||x.t!==a[i-1].t);
+ }
+ function ema(values,period){
+  if(values.length<period)return null;
+  const k=2/(period+1);let v=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  for(let i=period;i<values.length;i++)v=values[i]*k+v*(1-k);
+  return v;
+ }
+ function rsi(values,period=14){
+  if(values.length<=period)return null;
+  let gain=0,loss=0;
+  for(let i=1;i<=period;i++){const d=values[i]-values[i-1];gain+=Math.max(0,d);loss+=Math.max(0,-d)}
+  let ag=gain/period,al=loss/period;
+  for(let i=period+1;i<values.length;i++){const d=values[i]-values[i-1];ag=(ag*(period-1)+Math.max(0,d))/period;al=(al*(period-1)+Math.max(0,-d))/period}
+  return al===0?100:100-100/(1+ag/al);
+ }
+ function atr(rows,period=14){
+  if(rows.length<=period)return null;
+  const tr=[];
+  for(let i=1;i<rows.length;i++){const p=rows[i-1].c,x=rows[i];tr.push(Math.max(x.h-x.l,Math.abs(x.h-p),Math.abs(x.l-p)))}
+  let v=tr.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  for(let i=period;i<tr.length;i++)v=(v*(period-1)+tr[i])/period;
+  return v;
+ }
+ function macd(values){
+  if(values.length<40)return null;
+  const line=[];
+  for(let i=0;i<values.length;i++)line.push(ema(values.slice(0,i+1),12)-ema(values.slice(0,i+1),26));
+  const valid=line.filter(finite),signal=ema(valid,9);
+  return {line:valid[valid.length-1],signal,hist:valid[valid.length-1]-signal};
+ }
+ const fmt=n=>finite(n)?n.toFixed(2):"—";
+ function showRows(items){
+  $("candleRows").innerHTML="";
+  const table=document.createElement("table");table.className="module-table";
+  table.innerHTML="<thead><tr><th>TF</th><th>Bars</th><th>EMA20 / 50</th><th>RSI14</th><th>MACD hist</th><th>ATR14</th></tr></thead>";
+  const body=document.createElement("tbody");
+  items.forEach(x=>{const tr=document.createElement("tr");[x.tf,x.count,x.ema20&&x.ema50?fmt(x.ema20)+" / "+fmt(x.ema50):"—",fmt(x.rsi),fmt(x.macd?.hist),fmt(x.atr)].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.append(td)});body.append(tr)});
+  table.append(body);$("candleRows").append(table);
+ }
+ async function load(){
+  $("candleStatus").textContent="LOADING REAL CANDLES…";
+  $("candleBias").textContent="WAIT · loading market data";
+  $("candleReason").textContent="Checking candle coverage, timestamps and indicator inputs.";
+  $("candleQuality").textContent="";
+  try{
+   const results=await Promise.all(intervals.map(async tf=>{
+    const url="https://xaus.com/api/v1/chart?symbol=xau&range="+tf.range+"&interval="+tf.name;
+    const response=await fetch(url,{cache:"no-store"});
+    if(!response.ok)throw new Error(tf.name+" endpoint returned HTTP "+response.status);
+    const json=await response.json(),rows=normalize(json);
+    if(rows.length<60)throw new Error(tf.name+" has only "+rows.length+" valid OHLC bars; at least 60 are required");
+    const closed=rows.slice(0,-1),last=closed[closed.length-1],age=Date.now()-last.t;
+    const maxAge=tf.minutes*60*1000*3;
+    if(age<0||age>maxAge)throw new Error(tf.name+" candles are stale ("+Math.round(age/60000)+" minutes since last closed bar)");
+    const closes=closed.map(x=>x.c),m=macd(closes);
+    return {tf:tf.name,count:closed.length,last,age,ema20:ema(closes,20),ema50:ema(closes,50),rsi:rsi(closes),macd:m,atr:atr(closed),rows:closed};
+   }));
+   showRows(results);
+   const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
+   if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
+   const up=h.ema20>h.ema50,down=h.ema20<h.ema50;
+   const momUp=m.macd.hist>0&&m.rsi>50,momDown=m.macd.hist<0&&m.rsi<50;
+   const bias=up&&momUp?"BULLISH":down&&momDown?"BEARISH":"MIXED";
+   const candleAge=Math.max(...results.map(x=>x.age));
+   $("candleStatus").textContent="CANDLES VERIFIED · "+results.map(x=>x.tf).join(" / ");
+   $("candleStatus").style.color="#35c98a";
+   $("candleBias").textContent="WAIT · "+bias+" BIAS";
+   $("candleReason").textContent="1h EMA20/50: "+(up?"bullish":down?"bearish":"flat")+". 15m MACD/RSI: "+(momUp?"bullish momentum":momDown?"bearish momentum":"mixed momentum")+". 5m last closed candle: "+new Date(l.last.t).toLocaleString()+".";
+   $("candleQuality").textContent="Valid bars: 5m "+l.count+" · 15m "+m.count+" · 1h "+h.count+" | Oldest last-closed age: "+Math.round(candleAge/60000)+" min. Confluence is not a probability.";
+   $("candleMeta").textContent="Source: XAUS /api/v1/chart (XAU series via Yahoo Finance proxy). Refreshed: "+new Date().toLocaleString()+". Last forming candle excluded from indicators.";
+  }catch(error){
+   $("candleStatus").textContent="DATA UNAVAILABLE / STALE";
+   $("candleStatus").style.color="#f16e72";
+   $("candleBias").textContent="WAIT · NO VALID SIGNAL";
+   $("candleReason").textContent=String(error.message||error)+". No fallback or simulated candles are used.";
+   $("candleQuality").textContent="A valid, fresh OHLC history is required before analysis can continue.";
+   $("candleRows").textContent="Candle validation failed.";
+  }
+ }
+ $("candleRefresh").addEventListener("click",load);
+})();
+
 render();
 })();
