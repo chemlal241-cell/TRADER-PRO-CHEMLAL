@@ -28,7 +28,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const card=document.createElement("article");
  card.className="module-card wide";
  card.style.marginBottom="16px";
- card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · XAUS SPOT</h2><span id="xausState" class="module-muted">Connecting to XAUS…</span></div><div style="display:flex;gap:24px;align-items:baseline;flex-wrap:wrap;margin:16px 0"><strong id="xausPrice" style="font-size:clamp(30px,5vw,46px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for a verified quote…</div><div id="xausChart" style="height:150px;margin-top:14px;border:1px solid #29313e;border-radius:10px;background:#0b1017;display:grid;place-items:center;color:#93a0b2">Intraday history loading…</div><p class="module-muted" style="margin-bottom:0">Source: XAUS · Indicative spot mid-price, not a tradable broker quote. Updates are cached for up to 60 seconds. Signals remain WAIT until a separate validated signal engine is available.</p>';
+ card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · XAUS SPOT</h2><span id="xausState" class="module-muted">Connecting to XAUS…</span></div><div style="display:flex;gap:24px;align-items:baseline;flex-wrap:wrap;margin:16px 0"><strong id="xausPrice" style="font-size:clamp(30px,5vw,46px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for a verified quote…</div><div style="margin-top:14px;border:1px solid #29313e;border-radius:12px;overflow:hidden;background:#0b1017"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;background:#111720"><b style="color:#f1d18a">TradingView · OANDA:XAUUSD</b><span class="module-muted">Interactive chart</span></div><iframe title="TradingView OANDA XAUUSD live chart" src="https://www.tradingview.com/widgetembed/?frameElementId=tradingview_xauusd&symbol=OANDA%3AXAUUSD&interval=15&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=111720&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&locale=en" style="display:block;width:100%;height:520px;border:0" loading="lazy" allowtransparency="true" allowfullscreen></iframe></div><p class="module-muted" style="margin-bottom:0">Chart source: TradingView · OANDA:XAUUSD. Choose timeframes and chart tools inside the widget. The separate XAUS quote above is indicative spot data; broker prices may differ. The chart does not itself validate or generate BUY/SELL signals.</p>';
  overview.insertBefore(card,overview.firstChild);
  const $=id=>card.querySelector("#"+id);
  const fmt=n=>Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -71,7 +71,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("xausChart").title="XAUS first-party recorded spot observations · "+pts.length+" points · state: "+(data.data_state?.status||"unknown");
   }catch(e){$("xausChart").textContent="Could not load XAUS intraday history."}
  }
- loadSpot();loadIntraday();setInterval(loadSpot,60000);setInterval(loadIntraday,300000);
+ loadSpot();setInterval(loadSpot,60000);
  document.querySelector("#lang")?.addEventListener("change",()=>{loadSpot()});
 })(); 
 
