@@ -61,3 +61,10 @@ The Live Signals candle engine also calculates rule-based observations from vali
 - Adds a stricter 14-factor directional confluence count, ADX context, VWAP control, Bollinger outer-band stretch and a dedicated sweep/reclaim + CHoCH confirmation row. Candidate plans require minimum confluence and structure confirmation; they remain explicitly non-live and WAIT stays in force pending independent out-of-sample backtesting and forward paper validation.
 - Investing.com headlines are acknowledged as linked in the news panel, but they are not an automated event-risk filter. The economic calendar and live DXY series remain unconnected. Chart patterns such as H&S, triangles, wedges and flags still require visual confirmation.
 - Fibonacci levels are displayed only when the latest confirmed pivots form a chronological swing leg; otherwise the engine reports insufficient swing structure.
+
+
+## Strategy Library
+- The Strategies tab includes 18 structured XAU/USD playbook templates grouped into Smart Money Concepts, trend/indicators, price action, and sessions/news.
+- Each template includes its method, confirmation conditions, invalidation condition and typical timeframes, with a status label indicating calculated observations, manual chart checks, conditional volume requirements or unavailable integrations.
+- The catalogue covers BOS/CHoCH, liquidity sweeps, order blocks/supply-demand, FVG, Premium/Discount, Fibonacci OTE/extensions, S/R flips and round numbers, EMA stack, SuperTrend/ADX, Ichimoku, RSI/MACD/Stochastic, Bollinger Bands, VWAP/volume, candlesticks, divergence, trendlines/channels, chart patterns, London/New York sessions, Investing.com headlines, economic-calendar and DXY context.
+- This is a reference playbook, not an automated execution system. Patterns requiring visual confirmation remain manual; the economic calendar and live DXY series are not connected. No strategy card creates a live BUY/SELL signal.
