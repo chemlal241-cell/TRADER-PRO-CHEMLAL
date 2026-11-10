@@ -242,7 +242,11 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("candleRows").textContent="Candle validation failed.";
   }finally{loading=false}
  }
- $("candleRefresh").addEventListener("click",()=>{load();if(!refreshTimer)refreshTimer=setInterval(load,120000)});
+ $("candleRefresh").addEventListener("click",()=>load());
+ // Start automatically when Live Signals initializes; refresh every 2 minutes.
+ load();
+ refreshTimer=setInterval(()=>{if(!document.hidden)load()},120000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
 })();
 
 render();
