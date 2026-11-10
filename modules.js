@@ -122,6 +122,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
  root.append(panel);
  const $=id=>panel.querySelector("#"+id);
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>Smart Money Concepts · Advanced Strategy Matrix</h2><p class="module-muted">Computed from the same validated closed OHLC candles. These are rule-based observations, not guaranteed setups or a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
  function updateLivePanel(signal,description,biasLabel){
   const strong=root.querySelector(".card .signal strong");
   const desc=root.querySelector('.card .signal [data-i="waitDesc"]');
@@ -186,6 +187,128 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   return {line:last,signal,hist:last-signal};
  }
  const fmt=n=>finite(n)?n.toFixed(2):"—";
+ function pivots(rows,left=2,right=2){
+  const highs=[],lows=[];
+  for(let i=left;i<rows.length-right;i++){
+   let hi=true,lo=true;
+   for(let j=i-left;j<=i+right;j++){if(j===i)continue;if(rows[j].h>=rows[i].h)hi=false;if(rows[j].l<=rows[i].l)lo=false}
+   if(hi)highs.push({i,p:rows[i].h,t:rows[i].t});
+   if(lo)lows.push({i,p:rows[i].l,t:rows[i].t});
+  }
+  return {highs,lows};
+ }
+ function adx(rows,n=14){
+  if(rows.length<n*2+1)return null;
+  const tr=[],plus=[],minus=[];
+  for(let i=1;i<rows.length;i++){
+   const a=rows[i],p=rows[i-1],up=a.h-p.h,dn=p.l-a.l;
+   tr.push(Math.max(a.h-a.l,Math.abs(a.h-p.c),Math.abs(a.l-p.c)));
+   plus.push(up>dn&&up>0?up:0);minus.push(dn>up&&dn>0?dn:0);
+  }
+  let smTR=tr.slice(0,n).reduce((a,b)=>a+b,0),sp=plus.slice(0,n).reduce((a,b)=>a+b,0),sm=minus.slice(0,n).reduce((a,b)=>a+b,0),dx=[];
+  for(let i=n;i<tr.length;i++){
+   if(i>n){smTR=smTR-smTR/n+tr[i];sp=sp-sp/n+plus[i];sm=sm-sm/n+minus[i]}
+   const pdi=smTR?100*sp/smTR:0,mdi=smTR?100*sm/smTR:0;
+   dx.push(pdi+mdi?100*Math.abs(pdi-mdi)/(pdi+mdi):0);
+  }
+  return dx.length>=n?dx.slice(-n).reduce((a,b)=>a+b,0)/n:null;
+ }
+ function stochastic(rows,n=14){
+  if(rows.length<n)return null;const a=rows.slice(-n),hi=Math.max(...a.map(x=>x.h)),lo=Math.min(...a.map(x=>x.l)),c=a[a.length-1].c;
+  return hi===lo?50:100*(c-lo)/(hi-lo);
+ }
+ function bollinger(values,n=20){
+  if(values.length<n)return null;const a=values.slice(-n),m=a.reduce((x,y)=>x+y,0)/n,v=a.reduce((x,y)=>x+(y-m)**2,0)/n,d=Math.sqrt(v);
+  return {mid:m,upper:m+2*d,lower:m-2*d};
+ }
+ function ichimoku(rows){
+  if(rows.length<52)return null;
+  const mid=n=>{const a=rows.slice(-n),h=Math.max(...a.map(x=>x.h)),l=Math.min(...a.map(x=>x.l));return (h+l)/2};
+  return {tenkan:mid(9),kijun:mid(26),spanA:(mid(9)+mid(26))/2,spanB:mid(52)};
+ }
+ function supertrend(rows,n=10,mult=3){
+  if(rows.length<n+2)return null;
+  const a=atr(rows,n);if(!a)return null;const x=rows[rows.length-1],mid=(x.h+x.l)/2,upper=mid+mult*a,lower=mid-mult*a;
+  return {direction:x.c>upper?"BULLISH":x.c<lower?"BEARISH":"NEUTRAL",upper,lower,atr:a};
+ }
+ function candlePattern(rows){
+  if(rows.length<3)return "غير واضح";
+  const a=rows[rows.length-1],p=rows[rows.length-2],body=Math.abs(a.c-a.o),range=a.h-a.l||1,upper=a.h-Math.max(a.o,a.c),lower=Math.min(a.o,a.c)-a.l;
+  if(a.c>p.o&&a.o<p.c&&a.c>a.o&&p.c<p.o)return "Bullish Engulfing";
+  if(a.c<p.o&&a.o>p.c&&a.c<a.o&&p.c>p.o)return "Bearish Engulfing";
+  if(body/range<.1)return "Doji";
+  if(lower>body*2&&upper<body)return "Hammer / bullish pin";
+  if(upper>body*2&&lower<body)return "Shooting Star / bearish pin";
+  if(body/range>.85)return "Marubozu-like";
+  return "No strong candle pattern";
+ }
+ function analyzeAdvanced(results){
+  const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
+  if(!h||!m||!l)return;
+  const rows=m.rows,cl=rows.map(x=>x.c),last=rows[rows.length-1],p=pivots(rows),ph=p.highs.slice(-2),pl=p.lows.slice(-2),atrNow=atr(rows,14)||0;
+  const hhhl=ph.length===2&&pl.length===2&&ph[1].p>ph[0].p&&pl[1].p>pl[0].p;
+  const lhll=ph.length===2&&pl.length===2&&ph[1].p<ph[0].p&&pl[1].p<pl[0].p;
+  const priorH=p.highs.length>1?p.highs[p.highs.length-2]:null,priorL=p.lows.length>1?p.lows[p.lows.length-2]:null;
+  const bosUp=!!priorH&&last.c>priorH.p,bosDown=!!priorL&&last.c<priorL.p;
+  const chochUp=bosUp&&lhll,chochDown=bosDown&&hhhl;
+  const tolerance=Math.max(atrNow*.12,last.c*.00015);
+  const eqh=ph.length===2&&Math.abs(ph[1].p-ph[0].p)<=tolerance,eql=pl.length===2&&Math.abs(pl[1].p-pl[0].p)<=tolerance;
+  const sweepHigh=!!priorH&&last.h>priorH.p&&last.c<priorH.p,sweepLow=!!priorL&&last.l<priorL.p&&last.c>priorL.p;
+  const rangeRows=rows.slice(-50),rangeHigh=Math.max(...rangeRows.map(x=>x.h)),rangeLow=Math.min(...rangeRows.map(x=>x.l)),midpoint=(rangeHigh+rangeLow)/2;
+  const zone=last.c<midpoint?"DISCOUNT":last.c>midpoint?"PREMIUM":"EQUILIBRIUM";
+  const fib=ph.length&&pl.length?{r50:(ph[1].p+pl[pl.length-1].p)/2,r618:ph[1].p-(ph[1].p-pl[pl.length-1].p)*.618,r705:ph[1].p-(ph[1].p-pl[pl.length-1].p)*.705,r786:ph[1].p-(ph[1].p-pl[pl.length-1].p)*.786}:null;
+  let fvg="None",fvgLevel=null;
+  for(let i=rows.length-1;i>=2;i--){if(rows[i].l>rows[i-2].h){fvg="Bullish FVG";fvgLevel=[rows[i-2].h,rows[i].l];break}if(rows[i].h<rows[i-2].l){fvg="Bearish FVG";fvgLevel=[rows[i].h,rows[i-2].l];break}}
+  let ob="None",obLevel=null;
+  for(let i=rows.length-2;i>=Math.max(1,rows.length-20);i--){
+   const c=rows[i],next=rows[i+1],impulse=Math.abs(next.c-next.o)>Math.max(atrNow*.8,0);
+   if(impulse&&next.c>c.h&&c.c<c.o){ob="Potential Bullish OB";obLevel=[c.l,c.h];break}
+   if(impulse&&next.c<c.l&&c.c>c.o){ob="Potential Bearish OB";obLevel=[c.l,c.h];break}
+  }
+  const closes=cl,ema9=ema(closes,9),ema21=ema(closes,21),ema50=ema(closes,50),ema200=ema(closes,200),adxVal=adx(rows),stoch=stochastic(rows),bb=bollinger(closes),ichi=ichimoku(rows),st=supertrend(rows),pat=candlePattern(rows);
+  const rsiVal=rsi(closes),macdVal=macd(closes);
+  const vwapRows=rows.slice(-48),hasVolume=vwapRows.some(x=>x.v>0),vwap=hasVolume?vwapRows.reduce((a,x)=>a+((x.h+x.l+x.c)/3)*x.v,0)/vwapRows.reduce((a,x)=>a+x.v,0):null;
+  const bullDiv=p.lows.length>=2&&rsiVal!==null&&p.lows[p.lows.length-1].p<p.lows[p.lows.length-2].p&&rsi(closes.slice(0,p.lows[p.lows.length-1].i+1))>rsi(closes.slice(0,p.lows[p.lows.length-2].i+1));
+  const bearDiv=p.highs.length>=2&&rsiVal!==null&&p.highs[p.highs.length-1].p>p.highs[p.highs.length-2].p&&rsi(closes.slice(0,p.highs[p.highs.length-1].i+1))<rsi(closes.slice(0,p.highs[p.highs.length-2].i+1));
+  const upTrend=hhhl||bosUp||ema9>ema21&&ema21>ema50,downTrend=lhll||bosDown||ema9<ema21&&ema21<ema50;
+  const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",ema9>ema21,rsiVal>50,macdVal?.hist>0,bullDiv].filter(Boolean).length;
+  const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",ema9<ema21,rsiVal<50,macdVal?.hist<0,bearDiv].filter(Boolean).length;
+  const direction=bullish>bearish?"BUY BIAS":bearish>bullish?"SELL BIAS":"MIXED";
+  const score=Math.max(bullish,bearish),total=11,rrReady=score>=7&&Math.abs(bullish-bearish)>=3;
+  const side=bullish>bearish?"BUY":bearish>bullish?"SELL":null;
+  const entry=last.c,invalid=side==="BUY"?(priorL?.p??last.l-atrNow):(priorH?.p??last.h+atrNow);
+  const risk=side?Math.abs(entry-invalid):0;
+  const sl=side?(side==="BUY"?invalid-atrNow*.15:invalid+atrNow*.15):null;
+  const r=Math.abs(entry-sl||0);
+  const tp1=side?(side==="BUY"?entry+r:entry-r):null,tp2=side?(side==="BUY"?entry+2*r:entry-2*r):null,tp3=side?(side==="BUY"?entry+3*r:entry-3*r):null;
+  const london=new Date().toLocaleString("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hour12:false});
+  const ny=new Date().toLocaleString("en-US",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit",hour12:false});
+  const londonMin=Number(london.split(":")[0])*60+Number(london.split(":")[1]),nyMin=Number(ny.split(":")[0])*60+Number(ny.split(":")[1]);
+  const londonOn=londonMin>=480&&londonMin<1020,nyOn=nyMin>=570&&nyMin<960;
+  const patternText=pat+" · Double top/bottom candidates: "+(eqh||eql?"possible equal swing levels":"not confirmed")+" · Triangle/wedge/flag: visual confirmation required";
+  const lines=[
+   ["Structure",hhhl?"HH / HL bullish":lhll?"LH / LL bearish":"Range / mixed", "BOS "+(bosUp?"up":bosDown?"down":"none")+" · CHoCH "+(chochUp?"bullish":chochDown?"bearish":"none")],
+   ["Liquidity", "EQH "+(eqh?"yes":"no")+" / EQL "+(eql?"yes":"no"),"Sweep "+(sweepLow?"sell-side reclaimed":sweepHigh?"buy-side rejected":"none confirmed")],
+   ["Order blocks / S&D",ob,obLevel?fmt(obLevel[0])+" – "+fmt(obLevel[1]):"No qualified recent displacement zone"],
+   ["Fair Value Gap",fvg,fvgLevel?fmt(fvgLevel[0])+" – "+fmt(fvgLevel[1]):"No 3-candle gap"],
+   ["Premium / Discount",zone,"50% range "+fmt(midpoint)+" · "+(zone==="DISCOUNT"?"discount buys preferred":zone==="PREMIUM"?"premium sells preferred":"mid-range")],
+   ["Fibonacci / OTE",fib?"0.50 "+fmt(fib.r50)+" · 0.618 "+fmt(fib.r618)+" · 0.705 "+fmt(fib.r705)+" · 0.786 "+fmt(fib.r786):"Not enough confirmed swings","Extensions 1.272 / 1.618 require a validated swing anchor"],
+   ["Trend indicators","EMA9 "+fmt(ema9)+" · EMA21 "+fmt(ema21)+" · EMA50 "+fmt(ema50)+" · EMA200 "+fmt(ema200),"SuperTrend "+(st?.direction||"n/a")+" · ADX "+fmt(adxVal)],
+   ["Ichimoku / Momentum","Tenkan "+fmt(ichi?.tenkan)+" · Kijun "+fmt(ichi?.kijun),"RSI "+fmt(rsiVal)+" · MACD hist "+fmt(macdVal?.hist)+" · Stoch "+fmt(stoch)],
+   ["Bollinger / VWAP","BB "+(bb?"L "+fmt(bb.lower)+" / U "+fmt(bb.upper):"n/a"),"VWAP "+(vwap!==null?fmt(vwap):"not shown: volume absent/unverified")],
+   ["Candles / patterns",patternText,"Divergence "+(bullDiv?"bullish":bearDiv?"bearish":"none confirmed")],
+   ["Sessions","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Times from live timezone clock; session overlap only when both open"],
+   ["News / DXY","NOT CONNECTED","CPI / NFP / FOMC and DXY need a verified external feed or manual check"]
+  ];
+  const host=$("advancedRows");host.innerHTML="";
+  const table=document.createElement("table");table.className="module-table";
+  const body=document.createElement("tbody");
+  lines.forEach(a=>{const tr=document.createElement("tr");a.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;tr.append(td)});body.append(tr)});
+  table.append(body);host.append(table);
+  $("advancedStatus").textContent="ANALYSIS UPDATED · "+direction+" · confluence "+score+"/"+total+" (not probability)";
+  $("advancedPlan").textContent=rrReady&&risk>0?"CANDIDATE ONLY · "+side+" · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · WAIT remains active until independent backtest + forward paper validation pass.":"WAIT · insufficient independent confluence, unclear invalidation, or no validated edge. No entry/SL/TP recommendation.";
+ }
+
  function showRows(items){
   $("candleRows").innerHTML="";
   const table=document.createElement("table");table.className="module-table";
@@ -214,6 +337,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     return {tf:tf.name,count:closed.length,last,age,ema20:ema(closes,20),ema50:ema(closes,50),rsi:rsi(closes),macd:m,atr:atr(closed),rows:closed};
    }));
    showRows(results);
+   analyzeAdvanced(results);
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
    if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
    const up=h.ema20>h.ema50,down=h.ema20<h.ema50;
