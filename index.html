@@ -66,4 +66,5 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelect
 document.querySelector("#calc").onclick=()=>{const bal=+balance.value,r=+risk.value,dist=+sl.value,v=+contract.value;if(bal<=0||r<=0||dist<=0||v<=0){lots.textContent="—";return}const cash=bal*r/100;lots.textContent=(cash/(dist*v)).toFixed(3)+" lots";riskCash.textContent="Risk budget: $"+cash.toFixed(2)};
 document.querySelector("#chartFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);preview.innerHTML="";const img=document.createElement("img");img.src=u;img.style.maxWidth="100%";img.style.maxHeight="220px";preview.append(img)};
 setLang("en");check();
-</script></body></html>
+</script><script src="/modules.js" defer></script>
+</body></html>
