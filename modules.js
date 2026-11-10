@@ -95,7 +95,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  '<label>Risk plan</label><select id="swRiskPlan"><option value="0">Not checked</option><option value="1">Stop and position risk defined</option><option value="0">Stop / size not verified</option></select>'+
  '<label>Reward-to-risk</label><select id="swRR"><option value="0">Not checked</option><option value="1">At least 1:2</option><option value="0">Below 1:2 / unclear</option></select>'+
  '<label>Market session</label><select id="swSession"><option value="0">Not checked</option><option value="1">Liquid session with clear movement</option><option value="0">Quiet / uncertain conditions</option></select>'+
- '<div id="swResult" class="module-result" aria-live="polite">Complete the checklist, then calculate confluence.</div><button id="swCalc" style="margin-top:10px">Calculate checklist score</button><p class="module-muted">Maximum 14 points. A high score is not proof of profitability; verify every setup with historical and forward testing.</p></div></div>';
+ '<div id="swResult" class="module-result" aria-live="polite">Complete the checklist, then calculate confluence.</div><button id="swCalc" style="margin-top:10px">Calculate checklist score</button><p class="module-muted">Maximum 15 points. A high score is not proof of profitability; verify every setup with historical and forward testing.</p></div></div>';
  root.append(card);
  card.querySelector("#swCalc").addEventListener("click",()=>{
   const ids=["swTrend","swStructure","swZone","swEntry","swMomentum","swRisk","swEmotion","swDiscipline","swRiskPlan","swRR","swSession"];
@@ -104,7 +104,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const psychology=ids.slice(6).reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
   const blocked=["swRisk","swEmotion","swDiscipline","swRiskPlan"].some(id=>card.querySelector("#"+id).value==="0");
   const out=card.querySelector("#swResult");
-  out.textContent="Checklist: "+score+"/14 · Technical: "+technical+"/10 · Psychology & execution: "+psychology+"/4. "+(blocked?"WAIT — one or more safety/discipline checks are incomplete or adverse.":"Checklist recorded. This is not a live signal; confirm candles, levels, spread and backtest before any decision.");
+  out.textContent="Checklist: "+score+"/15 · Technical: "+technical+"/10 · Psychology & execution: "+psychology+"/5. "+(blocked?"WAIT — one or more safety/discipline checks are incomplete or adverse.":"Checklist recorded. This is not a live signal; confirm candles, levels, spread and backtest before any decision.");
  });
 })();
 
