@@ -2,7 +2,7 @@
 const css=document.createElement("style");
 css.textContent=".module-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.module-card{background:linear-gradient(160deg,#151a23,#10141b);border:1px solid #29313e;border-radius:17px;padding:18px}.module-card h2{font-size:15px;margin:0 0 15px;color:#f1d18a}.module-card input,.module-card select,.module-card textarea{width:100%;margin:5px 0 12px;border:1px solid #29313e;background:#171d27;color:#fff;border-radius:10px;padding:10px}.module-card label{display:block;color:#93a0b2;font-size:12px}.module-card button{border:0;border-radius:10px;padding:10px 14px;background:linear-gradient(135deg,#f0d18e,#b98731);color:#17120a;font-weight:800}.module-result{margin-top:12px;padding:13px;border:1px solid #69552d;border-radius:12px;color:#f1d18a;background:#201b11}.module-table{width:100%;border-collapse:collapse;font-size:13px}.module-table td,.module-table th{padding:8px;border-bottom:1px solid #29313e;text-align:left}.module-muted{font-size:12px;color:#93a0b2;line-height:1.6}@media(max-width:850px){.module-grid{grid-template-columns:1fr}}";
 document.head.append(css);
-const nav=document.querySelector(".tabs"),defs=[["risklab","Risk Lab"],["journal","Trade Journal"],["backtest","Backtest Lab"]];
+const nav=document.querySelector(".tabs"),defs=[["risklab","🛡 Risk Lab"],["journal","📓 Trade Journal"],["backtest","📈 Backtest Lab"]];
 defs.forEach(([id,label])=>{const b=document.createElement("button");b.className="tab";b.dataset.tab=id;b.textContent=label;nav.append(b)});
 const make=(id,html)=>{const s=document.createElement("section");s.id=id;s.className="module-grid hidden";s.innerHTML=html;document.querySelector("#app").append(s)};
 make("risklab",'<article class="module-card"><h2>Risk / Reward Calculator</h2><label>Direction</label><select id="rrSide"><option value="buy">BUY / Long</option><option value="sell">SELL / Short</option></select><label>Entry price</label><input id="rrEntry" type="number" step="any"><label>Stop loss price</label><input id="rrStop" type="number" step="any"><label>Take profit price</label><input id="rrTarget" type="number" step="any"><button id="rrCalc">Calculate R:R</button><div id="rrOut" class="module-result">Enter prices to calculate.</div><p class="module-muted">Price-distance calculation only; broker costs and contract rules are not verified.</p></article><article class="module-card"><h2>Risk Checklist</h2><div id="riskChecks"></div><div id="riskCheckOut" class="module-result">0 of 5 checks completed.</div></article>');
@@ -44,17 +44,19 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const stale=status==="stale"&&Number.isFinite(Number(data.spot_usd_oz))&&age<=300;
    if(!res.ok||(!fresh&&!stale)){
     $("xausPrice").textContent="—";
+    const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");if(topPrice)topPrice.textContent="—";if(topState)topState.textContent="● NO VERIFIED PRICE";
     $("xausState").textContent=stateLabel("unavailable");
     $("xausMeta").textContent="No verified recent quote. Trading signal: WAIT.";
     return;
    }
    $("xausPrice").textContent="$"+fmt(data.spot_usd_oz);
+   const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");if(topPrice)topPrice.textContent="$"+fmt(data.spot_usd_oz);if(topState)topState.textContent=fresh?"● LIVE · VERIFIED":"● STALE · WAIT";
    $("xausState").textContent=stateLabel(fresh?"fresh":"stale");
    $("xausState").style.color=fresh?"#35c98a":"#f1d18a";
    const asOf=data.price_as_of||data.data_state?.as_of||data.updated_at;
    $("xausMeta").textContent="Price time: "+new Date(asOf).toLocaleString()+" UTC · API age: "+Math.round(age)+"s · "+(data.price_source||"xaus.com")+(fresh?"":" · Signal: WAIT");
   }catch(e){
-   $("xausPrice").textContent="—";$("xausState").textContent=stateLabel("unavailable");$("xausMeta").textContent="XAUS connection failed. No price displayed; signal remains WAIT.";
+   $("xausPrice").textContent="—";const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");if(topPrice)topPrice.textContent="—";if(topState)topState.textContent="● FEED UNAVAILABLE";$("xausState").textContent=stateLabel("unavailable");$("xausMeta").textContent="XAUS connection failed. No price displayed; signal remains WAIT.";
   }
  }
  loadSpot();setInterval(loadSpot,60000);
@@ -121,7 +123,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   if(context){
    const rows=context.querySelectorAll(".list b");
    if(rows[0])rows[0].textContent=biasLabel||"—";
-   if(rows[3])rows[3].textContent=plan?"PAPER CANDIDATE · NOT VALIDATED":"NOT VALIDATED";
+   if(rows[3])rows[3].textContent=plan?(plan.score+"/"+plan.total+" · "+(plan.score/plan.total*100).toFixed(1)+"% confluence · paper only"):"WAIT · no qualifying setup";
   }
  }
  async function getFreshSpot(){
@@ -558,4 +560,28 @@ render();
  }
  render();setInterval(render,15000);
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)render()});
+})();
+
+
+/* Reference-style live header controls and Morocco session chips */
+(function(){
+ const clock=document.querySelector("#moroccoClock");
+ const refresh=document.querySelector("#topRefresh");
+ const fmtClock=()=>{if(clock)clock.textContent="🇲🇦 "+new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Casablanca",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(new Date())};
+ fmtClock();setInterval(fmtClock,1000);
+ if(refresh)refresh.addEventListener("click",()=>{const c=document.querySelector("#candleRefresh");if(c)c.click();else location.reload();});
+ const sessions=[
+  {id:"chipTokyo",tz:"Asia/Tokyo",start:9,end:18},
+  {id:"chipLondon",tz:"Europe/London",start:8,end:17},
+  {id:"chipNewYork",tz:"America/New_York",start:8,end:17}
+ ];
+ function renderChips(){
+  sessions.forEach(x=>{
+   const el=document.getElementById(x.id);if(!el)return;
+   const p=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:x.tz,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(v=>[v.type,v.value]));
+   const mins=Number(p.hour)*60+Number(p.minute),weekday=["Mon","Tue","Wed","Thu","Fri"].includes(p.weekday),open=weekday&&mins>=x.start*60&&mins<x.end*60;
+   el.classList.toggle("open",open);el.textContent="● "+x.tz.split("/").pop().toUpperCase()+" · "+(open?"OPEN":"CLOSED");
+  });
+ }
+ renderChips();setInterval(renderChips,15000);
 })();
