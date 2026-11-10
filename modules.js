@@ -368,7 +368,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const spot=await getFreshSpot();
    const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
    if(spotNearCandidate){
-    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2). " USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Paper-test only.",bias,candidate);
+    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Paper-test only.",bias,candidate);
    }else if(candidate){
     updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
    }else if(spot.ok){
