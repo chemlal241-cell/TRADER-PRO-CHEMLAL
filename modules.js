@@ -398,9 +398,14 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ["OTE / Fibonacci",fib?fib.direction+" · 0.50 "+fmt(fib.r50)+" · 0.618 "+fmt(fib.r618)+" · 0.705 "+fmt(fib.r705)+" · 0.786 "+fmt(fib.r786):"No confirmed swing leg","Extensions 1.272 "+fmt(fib?.e1272)+" · 1.618 "+fmt(fib?.e1618)],
    ["Sweep + reclaim + structure shift",bullSweepShift?"Bullish sweep → reclaim → CHoCH":bearSweepShift?"Bearish sweep → rejection → CHoCH":"No complete SMC trigger","A liquidity sweep alone is not an entry"],
    ["EMA confirmation","EMA9 "+fmt(ema9)+" · EMA21 "+fmt(ema21)+" · EMA50 "+fmt(ema50)+" · EMA200 "+fmt(ema200),"Bullish alignment "+(ema9>ema21&&ema21>ema50?"yes":"no")+" · bearish alignment "+(ema9<ema21&&ema21<ema50?"yes":"no")],
+   ["Trend indicators","ADX "+fmt(adxVal)+" · SuperTrend "+(st?.direction||"—")+" · Ichimoku "+(ichi?(last.c>Math.max(ichi.spanA,ichi.spanB)?"above cloud":last.c<Math.min(ichi.spanA,ichi.spanB)?"below cloud":"inside cloud"):"—"),"EMA 9/21/50/200 alignment is included in the weighted score"],
    ["RSI / MACD confirmations","RSI14 "+fmt(rsiVal)+" · MACD histogram "+fmt(macdVal?.hist),"Bullish confirmation "+(rsiVal>50&&macdVal?.hist>0?"yes":"no")+" · bearish confirmation "+(rsiVal<50&&macdVal?.hist<0?"yes":"no")],
+   ["Momentum","RSI "+fmt(rsiVal)+" · MACD hist "+fmt(macdVal?.hist)+" · Stochastic "+fmt(stoch),"Bullish / bearish divergence: "+(bullDiv?"bullish":bearDiv?"bearish":"none confirmed")],
+   ["Volatility · VWAP · Volume","Bollinger "+(bb?(last.c>bb.upper?"above upper band":last.c<bb.lower?"below lower band":"inside bands"):"—")+" · VWAP "+fmt(vwap),"Volume "+(hasVolume?(volumeConfirmed?"above 1.2× 20-bar average":"not confirmed"):"unavailable / not supplied")],
    ["Closed-candle trigger",pat,"Pattern must occur at a meaningful SMC zone and be confirmed on candle close"],
-   ["Session / event risk","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Verify CPI, NFP and FOMC schedule from a reliable calendar before any setup"]
+   ["Support / Resistance","Flip "+(srFlipUp?"resistance → support":srFlipDown?"support → resistance":"not confirmed"),"Round levels "+roundLevels.map(fmt).join(" / ")],
+   ["Chart patterns",patternText,"Double top/bottom candidates use equal swings; triangle, wedge, flag and head & shoulders require visual confirmation"],
+   ["Sessions · News · DXY","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"CPI / NFP / FOMC calendar and live DXY are not connected; verify externally before entry"]
   ];
   const host=$("advancedRows");host.innerHTML="";
   const table=document.createElement("table");table.className="module-table";
