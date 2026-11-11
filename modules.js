@@ -109,7 +109,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
  panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology (70%); all coded technical filters share 30%: EMA, RSI, MACD, ADX, Stochastic, Bollinger Bands, Ichimoku, Supertrend, VWAP, RSI divergence, candle patterns and Fibonacci/OTE. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
- let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0;
+ let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0,previousValidSpotPrice=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
   const plan=activeSignalPlan;
@@ -156,7 +156,11 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const age=Number.isFinite(stamp)?Math.max(0,(Date.now()-stamp)/1000):Infinity;
    const ok=response.ok&&data.data_state?.status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
    const quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp};latestSpotQuote=quote;
-   const priceEl=root.querySelector("#aiLivePrice"),ageEl=root.querySelector("#aiPriceAge");if(priceEl)priceEl.textContent=ok?"$"+quote.price.toFixed(2):"Unavailable";if(ageEl)ageEl.textContent=ok?"Quote age "+Math.round(age)+"s · source timestamp":"No fresh source quote";renderSignalStrength();
+   const priceEl=root.querySelector("#aiLivePrice"),ageEl=root.querySelector("#aiPriceAge"),moveEl=root.querySelector("#aiPriceMove");
+   if(priceEl)priceEl.textContent=ok?"$"+quote.price.toFixed(2):"Unavailable";
+   if(ageEl)ageEl.textContent=ok?"Source age "+Math.round(age)+"s":"No fresh source quote";
+   if(moveEl){if(!ok){moveEl.textContent="● FEED STALE";moveEl.dataset.move="stale";}else if(previousValidSpotPrice===null){moveEl.textContent="● TRACKING";moveEl.dataset.move="flat";}else{const delta=quote.price-previousValidSpotPrice,pct=previousValidSpotPrice?delta/previousValidSpotPrice*100:0;moveEl.textContent=(delta>0?"▲ +":delta<0?"▼ ":"• ")+(delta===0?"0.00":delta.toFixed(2))+" ("+(delta>0?"+":"")+pct.toFixed(3)+"%)";moveEl.dataset.move=delta>0?"up":delta<0?"down":"flat";}if(ok)previousValidSpotPrice=quote.price;}
+   renderSignalStrength();
    return quote;
   }catch(_){return {ok:false}}
  }
