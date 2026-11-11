@@ -118,7 +118,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  if(candleHistoryCard)candleHistoryCard.style.display="none";
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
- panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology (70%); all coded technical filters share 30%: EMA, RSI, MACD, ADX, Stochastic, Bollinger Bands, Ichimoku, Supertrend, VWAP, RSI divergence, candle patterns and Fibonacci/OTE. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, scheduled macro events and visual chart patterns remain external/manual checks until a verified source or detector is connected.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
  let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0,previousValidSpotPrice=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
@@ -140,14 +140,14 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const side=plan?plan.side:(String(signal).includes("SELL")?"SELL":String(signal).includes("BUY")?"BUY":"WAIT");
    card.classList.toggle("is-buy",side==="BUY");card.classList.toggle("is-sell",side==="SELL");
    const set=(id,value)=>{const el=card.querySelector("#"+id);if(el)el.textContent=value};
-   set("aiSignalSide",side==="BUY"?"📈 BUY":side==="SELL"?"📉 SELL":"WAIT");
+   set("aiSignalSide",side==="BUY"?(plan&&plan.score/plan.total>=.75?"📈 STRONG BUY":"📈 BUY"):side==="SELL"?(plan&&plan.score/plan.total>=.75?"📉 STRONG SELL":"📉 SELL"):"WAIT");
    set("aiSignalLive",String(signal).includes("UNAVAILABLE")?"● DATA UNAVAILABLE":"● DATA CHECKED");
    set("aiSignalDescription",description||"Waiting for a confirmed setup.");
    const values=plan?[plan.entry,plan.sl,plan.tp1,plan.tp2,plan.tp3]:[null,null,null,null,null];
    ["aiEntry","aiStop","aiTp1","aiTp2","aiTp3"].forEach((id,i)=>set(id,Number.isFinite(values[i])?"$"+fmt(values[i]):"—"));
    const pct=plan&&Number.isFinite(plan.score)&&Number.isFinite(plan.total)&&plan.total>0?Math.max(0,Math.min(100,plan.score/plan.total*100)):0;
    set("aiConfidenceValue",plan?pct.toFixed(1)+"%":"—");
-   set("aiConfidenceLabel",plan?"SMC confluence · not win probability":"No confirmed entry · WAIT");
+   set("aiConfidenceLabel",plan?"Multi-strategy confluence · not win probability":"No confirmed entry · WAIT");
    const bar=card.querySelector("#aiConfidenceBar");if(bar)bar.style.width=pct+"%";
     renderSignalStrength();
   }
@@ -329,7 +329,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   }
   const closes=cl,ema9=ema(closes,9),ema21=ema(closes,21),ema50=ema(closes,50),ema200=ema(closes,200),adxVal=adx(rows),stoch=stochastic(rows),bb=bollinger(closes),ichi=ichimoku(rows),st=supertrend(rows),pat=candlePattern(rows);
   const rsiVal=rsi(closes),macdVal=macd(closes);
-  const vwapRows=rows.slice(-48),hasVolume=vwapRows.some(x=>x.v>0),vwap=hasVolume?vwapRows.reduce((a,x)=>a+((x.h+x.l+x.c)/3)*x.v,0)/vwapRows.reduce((a,x)=>a+x.v,0):null;
+  const vwapRows=rows.slice(-48),hasVolume=vwapRows.some(x=>x.v>0),vwap=hasVolume?vwapRows.reduce((a,x)=>a+((x.h+x.l+x.c)/3)*x.v,0)/vwapRows.reduce((a,x)=>a+x.v,0):null,volBase=rows.slice(-21,-1).reduce((a,x)=>a+(x.v||0),0)/20,volumeConfirmed=hasVolume&&volBase>0&&last.v>=volBase*1.2;
   const bullDiv=p.lows.length>=2&&rsiVal!==null&&p.lows[p.lows.length-1].p<p.lows[p.lows.length-2].p&&rsi(closes.slice(0,p.lows[p.lows.length-1].i+1))>rsi(closes.slice(0,p.lows[p.lows.length-2].i+1));
   const bearDiv=p.highs.length>=2&&rsiVal!==null&&p.highs[p.highs.length-1].p>p.highs[p.highs.length-2].p&&rsi(closes.slice(0,p.highs[p.highs.length-1].i+1))<rsi(closes.slice(0,p.highs[p.highs.length-2].i+1));
   const upTrend=hhhl||bosUp||ema9>ema21&&ema21>ema50,downTrend=lhll||bosDown||ema9<ema21&&ema21<ema50;
@@ -418,8 +418,8 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ?(zone==="DISCOUNT"||fvgLevel&&fvg==="Bullish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bullish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1])
    :(zone==="PREMIUM"||fvgLevel&&fvg==="Bearish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bearish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1]);
   const entryConfirmed=!!(side&&structureTrigger&&zoneConfirmed&&(side==="BUY"?candleBull:candleBear));
-  const candidate=!!(side&&entryConfirmed&&separation>=12&&aligned&&risk>0&&atrNow>0&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
-  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" · ENTRY CONFIRMED · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · Dynamic confluence "+confluencePct.toFixed(1)+"% · SMC trigger + zone + closed candle + 1h/15m alignment · Historical win rate: N/A (not backtested).":"WAIT · dynamic confluence "+confluencePct.toFixed(1)+"% · waiting for market-structure break/reclaim, valid SMC zone, directional closed-candle trigger, 1h/15m alignment and clear risk.";
+  const candidate=!!(side&&entryConfirmed&&confluencePct>=60&&separation>=12&&aligned&&risk>0&&atrNow>0&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" · ENTRY CONFIRMED · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · Dynamic confluence "+confluencePct.toFixed(1)+"% · SMC trigger + zone + closed candle + 1h/15m alignment + ≥60% confluence · R:R 1:1 / 1:2 / 1:3 · Win rate not validated.":"WAIT · dynamic confluence "+confluencePct.toFixed(1)+"% · waiting for market-structure break/reclaim, valid SMC zone, directional closed-candle trigger, 1h/15m alignment and clear risk.";
   return candidate?{side,entry,sl,tp1,tp2,tp3,score:Math.round(score),total:totalWeight,atr:atrNow,time:m.last?.t||last.t}:null;
  }
 
@@ -561,7 +561,7 @@ render();
 (function(){
  const root=document.querySelector("#strategy");if(!root||root.dataset.catalogReady)return;root.dataset.catalogReady="1";
  const intro=root.querySelector(":scope > .card");
- if(intro)intro.innerHTML='<h2>SMC Strategy Library · XAU/USD</h2><p class="notice">The live confluence engine combines SMC structure/liquidity/zones with every coded technical filter: EMA, RSI, MACD, ADX, Stochastic, Bollinger Bands, Ichimoku, Supertrend, VWAP, RSI divergence, candle patterns and Fibonacci/OTE.</p>';
+ if(intro)intro.innerHTML='<h2>SMC Strategy Library · XAU/USD</h2><p class="notice">AI SIGNALS uses the live weighted confluence engine: SMC structure/liquidity/zones plus coded trend, momentum, volatility, VWAP, divergence, candle-pattern and Fibonacci filters. DXY/news and visual chart patterns are shown as external/manual confirmation until verified data and detection are connected.</p>';
  const panel=document.createElement("article");panel.className="module-card wide";panel.style.marginTop="14px";
  panel.innerHTML='<h2>Smart Money Concepts · Core setups</h2><div id="smcLibrary" class="module-grid"></div><p class="module-muted" style="margin-top:12px">Educational rule definitions. A detected zone or pattern is not proof of institutional activity and does not independently authorize an order.</p>';
  root.prepend(panel);
