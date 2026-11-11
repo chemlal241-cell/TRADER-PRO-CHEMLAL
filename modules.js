@@ -118,7 +118,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  if(candleHistoryCard)candleHistoryCard.style.display="none";
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
- panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, scheduled macro events and visual chart patterns remain external/manual checks until a verified source or detector is connected.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">DXY, official BLS/Federal Reserve event calendar, COMEX futures volume/VWAP proxy and Gemini review are required for a live AI-reviewed candidate. Missing/stale macro data, missing volume or active event risk forces WAIT.</p></div>';
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, scheduled macro events and visual chart patterns remain external/manual checks until a verified source or detector is connected.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">DXY, official BLS/Federal Reserve event calendar, COMEX futures volume/VWAP proxy and external AI review are required for a live AI-reviewed candidate. Missing/stale macro data, missing volume or active event risk forces WAIT.</p></div>';
  let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0,previousValidSpotPrice=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
@@ -493,10 +493,10 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    }));
    showRows(results);
    const macro=await macroPromise,aiConfig=await aiConfigPromise;
-   const aiBadge=root.querySelector("#aiSignalLive");if(aiBadge)aiBadge.textContent=aiConfig.configured?"● GEMINI AI READY":"● GEMINI API KEY REQUIRED";
+   const aiBadge=root.querySelector("#aiSignalLive");if(aiBadge)aiBadge.textContent=aiConfig.configured?"●  AI READY":"● GEMINI API KEY REQUIRED";
    if(!aiConfig.configured)$("advancedPlan").textContent="WAIT · Gemini AI review is not configured. Add GEMINI_API_KEY to Vercel environment variables; no BUY/SELL signal can pass without AI approval.";
    const candidate=analyzeAdvanced(results,macro);
-   if(!candidate){const blockers=[];if(!macro?.calendar?.ok)blockers.push("official BLS/Fed calendar unavailable");if(!macro?.dxy?.ok)blockers.push("DXY missing or stale");if(!macro?.goldFutures?.ok)blockers.push("COMEX volume/VWAP missing or stale");if(macro?.calendar?.activeRisk)blockers.push("high-impact event blackout active");if(macro?.goldFutures?.data&&Number(macro.goldFutures.data.volumeRatio)<1.2)blockers.push("volume confirmation below 1.2×");if(!aiConfig.configured)blockers.push("Gemini API key not configured");$("advancedPlan").textContent="WAIT · "+(blockers.length?blockers.join(" · "):"technical entry conditions not met")+". No trade signal until all required checks pass."}
+   if(!candidate){const blockers=[];if(!macro?.calendar?.ok)blockers.push("official BLS/Fed calendar unavailable");if(!macro?.dxy?.ok)blockers.push("DXY missing or stale");if(!macro?.goldFutures?.ok)blockers.push("COMEX volume/VWAP missing or stale");if(macro?.calendar?.activeRisk)blockers.push("high-impact event blackout active");if(macro?.goldFutures?.data&&Number(macro.goldFutures.data.volumeRatio)<1.2)blockers.push("volume confirmation below 1.2×");$("advancedPlan").textContent="WAIT · "+(blockers.length?blockers.join(" · "):"technical entry conditions not met")+". No trade signal until all required checks pass."}
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
    if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
    const up=h.ema20>h.ema50,down=h.ema20<h.ema50;
@@ -511,16 +511,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const spot=await getFreshSpot();
    const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
    if(spotNearCandidate){
-    const aiResponse=await fetch("/api/ai-review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({analysis:{symbol:"XAUUSD",side:candidate.side,entry:candidate.entry,stopLoss:candidate.sl,targets:[candidate.tp1,candidate.tp2,candidate.tp3],confluence:candidate.score+"/"+candidate.total,timeframes:["5m","15m","1h"],macro:candidate.macro,calendarVerified:!!macro?.calendar?.ok,eventRisk:!!macro?.calendar?.activeRisk,volumeSource:"COMEX GC=F futures volume proxy",volumeConfirmed:!!macro?.goldFutures?.ok}})});
-    const aiData=await aiResponse.json().catch(()=>({ok:false,error:"Invalid AI response"}));
-    if(!aiResponse.ok||!aiData.ok||!aiData.review?.approved){
-     const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=aiData.configured?"● AI REVIEW BLOCKED":"● AI KEY REQUIRED";
-     updateLivePanel("WAIT · AI REVIEW REQUIRED",aiData.error||aiData.review?.summary||"AI review did not approve this setup. No BUY/SELL signal.",bias);
-     $("advancedPlan").textContent="WAIT · AI review "+(aiData.configured?"rejected or unavailable":"not configured")+". "+(aiData.error||aiData.review?.summary||"Add GEMINI_API_KEY in Vercel to activate the AI review gate.");
-     return;
-    }
-    const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent="● GEMINI REVIEW PASSED · PAPER ONLY";
-    updateLivePanel(candidate.side+" · AI REVIEWED",candidate.side+" setup passed deterministic rules and Gemini risk review. Fresh spot $"+spot.price.toFixed(2)+" USD/oz. Paper-test only.",bias,candidate);
+     updateLivePanel(candidate.side+" · STRATEGY SIGNAL",candidate.side+" setup passed the website multi-strategy rules and macro checks. Fresh spot $"+spot.price.toFixed(2)+" USD/oz. Paper-test only.",bias,candidate);
    }else if(candidate){
     updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" SMC setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
    }else if(spot.ok){
