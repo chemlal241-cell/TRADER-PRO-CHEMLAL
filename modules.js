@@ -425,6 +425,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    }else{
     updateLivePanel("WAIT","Candles are verified, but no fresh XAUS spot quote is confirmed. No trade recommendation.","UNAVAILABLE");
    }
+   const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=aiReady?"● GEMINI REVIEWED":"● GEMINI OFFLINE";
    $("candleMeta").textContent="Source: XAUS /api/v1/chart (XAU series via Yahoo Finance proxy). Refreshed: "+new Date().toLocaleString()+". Last forming candle excluded from indicators.";
   }catch(error){
    $("candleStatus").textContent="DATA UNAVAILABLE / STALE";
