@@ -161,9 +161,9 @@ body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),l
  <nav class="tabs"><button class="tab active" data-tab="overview" data-i="live">📊 Live AI</button><button class="tab" data-tab="analysis" data-i="analysis">🖼 Image Analyzer</button><button class="tab" data-tab="tools" data-i="tools">🧰 Tools</button><button class="tab" data-tab="strategy" data-i="strategy">📚 Strategies</button><button class="tab" data-tab="news">🗞 News & Calendar</button></nav>
  <section id="overview" class="grid">
   <article class="card ai-signal-card">
-   <div class="ai-signal-head"><span>🎯 SMC + GEMINI SIGNAL</span><span id="aiSignalLive">● DATA CHECK</span></div>
+   <div class="ai-signal-head"><span>🎯 SMC STRATEGY SIGNAL</span><span id="aiSignalLive">● DATA CHECK</span></div>
    <div class="ai-price-line"><span>XAUUSD LIVE SPOT</span><b id="aiLivePrice">—</b><small id="aiPriceAge">Waiting for quote</small></div>
-   <div class="ai-signal-main"><strong id="aiSignalSide">WAIT</strong><div class="ai-confidence"><div class="ai-confidence-track"><span id="aiConfidenceBar"></span></div><b id="aiConfidenceValue">—</b></div><small id="aiConfidenceLabel">Analysis strength · data quality + SMC + AI (not win probability)</small></div>
+   <div class="ai-signal-main"><strong id="aiSignalSide">WAIT</strong><div class="ai-confidence"><div class="ai-confidence-track"><span id="aiConfidenceBar"></span></div><b id="aiConfidenceValue">—</b></div><small id="aiConfidenceLabel">Analysis strength · SMC confluence + data quality (not win probability)</small></div>
    <div class="ai-level-list">
     <div class="ai-level entry"><span>🎯 Entry</span><b id="aiEntry">—</b></div>
     <div class="ai-level stop"><span>🔴 Stop Loss</span><b id="aiStop">—</b></div>
@@ -171,7 +171,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),l
     <div class="ai-level target"><span>✅ TP2</span><b id="aiTp2">—</b></div>
     <div class="ai-level target"><span>✅ TP3</span><b id="aiTp3">—</b></div>
    </div>
-   <div class="ai-signal-footer"><span id="aiSignalDescription">Waiting for verified market data and a confirmed entry.</span><div id="aiGeminiNote" style="margin-top:9px;color:#7ed9ad">Gemini AI · awaiting secure API setup</div></div>
+   <div class="ai-signal-footer"><span id="aiSignalDescription">Waiting for verified market data and a confirmed entry.</span></div>
   </article>
   <article class="card"><h2 data-i="marketContext">Market context</h2><div class="list"><div><span data-i="trend">Trend</span><b>—</b></div><div><span data-i="volatility">Volatility</span><b>—</b></div><div><span data-i="timeframe">Timeframe</span><b>15m / 1h / 4h</b></div><div><span data-i="confidence">Signal confidence</span><b>—</b></div></div><p class="notice" data-i="contextNote">Context will populate after a trusted market-data feed and signal engine are configured.</p></article>
   <article class="card wide"><h2 data-i="safetyTitle">Risk & signal policy</h2><p class="notice" data-i="safetyText">Signals are informational, not financial advice. This starter project deliberately stays in WAIT mode until live data, tested rules, and a validated signal engine are connected. No automatic orders are sent.</p></article>
