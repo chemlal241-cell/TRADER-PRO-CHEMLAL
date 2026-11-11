@@ -150,16 +150,27 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  }
  async function getFreshSpot(){
   try{
-   const response=await fetch("https://xaus.com/api/v1/spot?compact=1",{cache:"no-store"});
-   const data=await response.json();
-   const stamp=Date.parse(data.price_as_of||data.data_state?.as_of||data.updated_at||"");
-   const age=Number.isFinite(stamp)?Math.max(0,(Date.now()-stamp)/1000):Infinity;
-   const ok=response.ok&&data.data_state?.status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
-   const quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp};latestSpotQuote=quote;
+   let quote=null;
+   try{
+    const xmResponse=await fetch("/api/xm-quote",{cache:"no-store"});
+    const xm=await xmResponse.json();
+    if(xmResponse.ok&&xm.ok&&Number.isFinite(Number(xm.price))&&Number(xm.age)<=20){
+     quote={ok:true,price:Number(xm.price),bid:Number(xm.bid),ask:Number(xm.ask),age:Number(xm.age),asOf:Date.parse(xm.received_at),source:"XM MT5"};
+    }
+   }catch(_){}
+   if(!quote){
+    const response=await fetch("https://xaus.com/api/v1/spot?compact=1",{cache:"no-store"});
+    const data=await response.json();
+    const stamp=Date.parse(data.price_as_of||data.data_state?.as_of||data.updated_at||"");
+    const age=Number.isFinite(stamp)?Math.max(0,(Date.now()-stamp)/1000):Infinity;
+    const ok=response.ok&&data.data_state?.status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
+    quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp,source:"XAUS"};
+   }
+   latestSpotQuote=quote;
    const priceEl=root.querySelector("#aiLivePrice"),ageEl=root.querySelector("#aiPriceAge"),moveEl=root.querySelector("#aiPriceMove");
-   if(priceEl)priceEl.textContent=ok?"$"+quote.price.toFixed(2):"Unavailable";
-   if(ageEl)ageEl.textContent=ok?"Source age "+Math.round(age)+"s":"No fresh source quote";
-   if(moveEl){if(!ok){moveEl.textContent="● FEED STALE";moveEl.dataset.move="stale";}else if(previousValidSpotPrice===null){moveEl.textContent="● TRACKING";moveEl.dataset.move="flat";}else{const delta=quote.price-previousValidSpotPrice,pct=previousValidSpotPrice?delta/previousValidSpotPrice*100:0;moveEl.textContent=(delta>0?"▲ +":delta<0?"▼ ":"• ")+(delta===0?"0.00":delta.toFixed(2))+" ("+(delta>0?"+":"")+pct.toFixed(3)+"%)";moveEl.dataset.move=delta>0?"up":delta<0?"down":"flat";}if(ok)previousValidSpotPrice=quote.price;}
+   if(priceEl)priceEl.textContent=quote.ok?"$"+quote.price.toFixed(2):"Unavailable";
+   if(ageEl)ageEl.textContent=quote.ok?quote.source+" · "+Math.round(quote.age)+"s"+(quote.bid?" · Bid "+quote.bid.toFixed(2)+" / Ask "+quote.ask.toFixed(2):""):"No fresh source quote";
+   if(moveEl){if(!quote.ok){moveEl.textContent="● FEED STALE";moveEl.dataset.move="stale";}else if(previousValidSpotPrice===null){moveEl.textContent="● TRACKING";moveEl.dataset.move="flat";}else{const delta=quote.price-previousValidSpotPrice,pct=previousValidSpotPrice?delta/previousValidSpotPrice*100:0;moveEl.textContent=(delta>0?"▲ +":delta<0?"▼ ":"• ")+(delta===0?"0.00":delta.toFixed(2))+" ("+(delta>0?"+":"")+pct.toFixed(3)+"%)";moveEl.dataset.move=delta>0?"up":delta<0?"down":"flat";}if(quote.ok)previousValidSpotPrice=quote.price;}
    renderSignalStrength();
    return quote;
   }catch(_){return {ok:false}}
