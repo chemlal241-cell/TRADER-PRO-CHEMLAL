@@ -8,8 +8,8 @@ async function get(url){const r=await fetch(url,{headers:{"User-Agent":"Mozilla/
 async function yahoo(symbol){
  const r=await get(YAHOO+encodeURIComponent(symbol)+"?range=1d&interval=5m");
  const j=await r.json(),x=j?.chart?.result?.[0];if(!x)throw new Error("Yahoo chart data unavailable for "+symbol);
- const q=x.indicators?.quote?.[0]||{},ts=x.timestamp||[],cl=q.close||[],vol=q.volume||[];
- const bars=ts.map((t,i)=>({time:t*1000,close:Number(cl[i]),volume:Number(vol[i]||0)})).filter(b=>Number.isFinite(b.close)&&b.close>0);
+ const q=x.indicators?.quote?.[0]||{},ts=x.timestamp||[],cl=q.close||[],hi=q.high||[],lo=q.low||[],vol=q.volume||[];
+ const bars=ts.map((t,i)=>({time:t*1000,close:Number(cl[i]),high:Number(hi[i]),low:Number(lo[i]),volume:Number(vol[i]||0)})).filter(b=>Number.isFinite(b.close)&&b.close>0);
  if(!bars.length)throw new Error("No recent bars for "+symbol);
  return {meta:x.meta||{},bars};
 }
