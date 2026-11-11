@@ -113,8 +113,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
   const plan=activeSignalPlan;
-  const base=plan&&plan.total>0?Math.max(0,Math.min(100,plan.score/plan.total*100)):0;
-  const freshness=latestSpotQuote&&latestSpotQuote.ok?Math.max(0,100-Math.min(100,latestSpotQuote.age/1.8)):0;
+  const base=plan&&plan.total>0?Math.max(0,Math.min(100,plan.score/plan.total*100)):latestConfluence;
+  const quoteAge=latestSpotQuote&&Number.isFinite(latestSpotQuote.asOf)?Math.max(0,(Date.now()-latestSpotQuote.asOf)/1000):Infinity;
+  const freshness=latestSpotQuote&&latestSpotQuote.ok?Math.max(0,100-Math.min(100,quoteAge/1.8)):0;
   const priceFit=plan&&latestSpotQuote&&latestSpotQuote.ok&&Number.isFinite(plan.atr)&&plan.atr>0?Math.max(0,100-Math.abs(latestSpotQuote.price-plan.entry)/plan.atr*100):0;
   const score=Math.round(Math.max(0,Math.min(100,base*.70+freshness*.20+priceFit*.10)));
   const value=card.querySelector("#aiConfidenceValue"),bar=card.querySelector("#aiConfidenceBar"),label=card.querySelector("#aiConfidenceLabel");
