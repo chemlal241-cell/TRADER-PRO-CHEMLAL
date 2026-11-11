@@ -478,6 +478,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   $("candleQuality").textContent="";
   try{
    const macroPromise=fetch("/api/market-context",{cache:"no-store"}).then(r=>r.json()).catch(()=>null);
+   const aiConfigPromise=fetch("/api/ai-review",{cache:"no-store"}).then(r=>r.json()).catch(()=>({configured:false}));
    const results=await Promise.all(intervals.map(async tf=>{
     const url="https://xaus.com/api/v1/chart?symbol=xau&range="+tf.range+"&interval="+tf.name;
     const response=await fetch(url,{cache:"no-store"});
@@ -491,7 +492,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     return {tf:tf.name,count:closed.length,last,age,ema20:ema(closes,20),ema50:ema(closes,50),rsi:rsi(closes),macd:m,atr:atr(closed),rows:closed};
    }));
    showRows(results);
-   const macro=await macroPromise;
+   const macro=await macroPromise,aiConfig=await aiConfigPromise;
+   const aiBadge=root.querySelector("#aiSignalLive");if(aiBadge)aiBadge.textContent=aiConfig.configured?"● GEMINI AI READY":"● GEMINI API KEY REQUIRED";
+   if(!aiConfig.configured)$("advancedPlan").textContent="WAIT · Gemini AI review is not configured. Add GEMINI_API_KEY to Vercel environment variables; no BUY/SELL signal can pass without AI approval.";
    const candidate=analyzeAdvanced(results,macro);
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
    if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
