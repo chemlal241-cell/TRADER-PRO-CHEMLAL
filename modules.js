@@ -119,7 +119,30 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
  panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, official CPI/NFP/FOMC calendar, COMEX futures volume/VWAP proxy and automated pattern candidates are integrated into the rules engine. Chart patterns require confirmed breakouts; missing data forces WAIT.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">DXY, official BLS/Federal Reserve event calendar and COMEX futures volume/VWAP proxy are required for a strategy candidate. No Google or external AI service is connected. Missing/stale macro data, missing volume or active event risk forces WAIT.</p></div>';
+ panel.innerHTML+='<div class="module-card" id="signalDetailsCard" style="margin-top:14px"><h2>AI SIGNALS · SMC DECISION DETAILS</h2><div class="module-grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px"><div class="ai-level"><span>Market direction</span><b id="detailTrend">—</b></div><div class="ai-level"><span>BOS</span><b id="detailBos">—</b></div><div class="ai-level"><span>CHoCH</span><b id="detailChoch">—</b></div><div class="ai-level"><span>Liquidity</span><b id="detailLiquidity">—</b></div><div class="ai-level"><span>Order Block</span><b id="detailOB">—</b></div><div class="ai-level"><span>FVG</span><b id="detailFVG">—</b></div><div class="ai-level"><span>Entry Zone</span><b id="detailEntryZone">—</b></div><div class="ai-level"><span>Strategy agreement</span><b id="detailConfluence">—</b></div></div><div class="ai-signal-footer" style="text-align:left"><b>Decision reason:</b> <span id="detailReason">Waiting for market data.</span></div></div><div class="module-card" id="signalHistoryCard" style="margin-top:14px"><h2>Previous AI Signals · سجل الإشارات</h2><p class="module-muted">Saved locally in this browser · last 50 decisions.</p><div id="signalHistoryRows" class="module-muted">No saved signals yet.</div></div>';
  let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0,previousValidSpotPrice=null;
+ let latestSignalSnapshot=null;
+ const signalHistoryKey="tpc_ai_signal_history_v1";
+ function renderSignalDetails(snapshot,decision,reasonOverride){
+  const x=snapshot||latestSignalSnapshot||{},set=(id,value)=>{const el=root.querySelector("#"+id);if(el)el.textContent=value??"—"};
+  set("detailTrend",x.trend||"—");set("detailBos",x.bos||"—");set("detailChoch",x.choch||"—");set("detailLiquidity",x.liquidity||"—");set("detailOB",x.ob||"—");set("detailFVG",x.fvg||"—");set("detailEntryZone",x.entryZone||"—");set("detailConfluence",Number.isFinite(x.confluence)?x.confluence.toFixed(1)+"%":"—");set("detailReason",reasonOverride||x.reason||"Waiting for confirmed data.");
+ }
+ function renderSignalHistory(){
+  const host=root.querySelector("#signalHistoryRows");if(!host)return;
+  let items=[];try{items=JSON.parse(localStorage.getItem(signalHistoryKey)||"[]");if(!Array.isArray(items))items=[]}catch(_){}
+  host.innerHTML="";
+  if(!items.length){host.textContent="No saved signals yet.";return}
+  const table=document.createElement("table");table.className="module-table";
+  const thead=document.createElement("thead"),hr=document.createElement("tr");
+  ["Time","Signal","Trend","Confluence","Entry / SL","Reason"].forEach(t=>{const th=document.createElement("th");th.textContent=t;hr.append(th)});thead.append(hr);table.append(thead);
+  const body=document.createElement("tbody");
+  items.slice(0,50).forEach(x=>{const tr=document.createElement("tr");[new Date(x.time).toLocaleString(),x.side,x.trend,(Number(x.confluence)||0).toFixed(1)+"%",x.entry?fmt(x.entry)+" / "+fmt(x.sl):"—",x.reason||"—"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.append(td)});body.append(tr)});
+  table.append(body);host.append(table);
+ }
+ function saveSignalHistory(item){
+  try{const items=JSON.parse(localStorage.getItem(signalHistoryKey)||"[]"),list=Array.isArray(items)?items:[],last=list[0];if(last&&last.key===item.key)return;list.unshift(item);localStorage.setItem(signalHistoryKey,JSON.stringify(list.slice(0,50)));renderSignalHistory()}catch(_){}
+ }
+ renderSignalHistory();
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
   const plan=activeSignalPlan;
@@ -458,6 +481,24 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    :(zone==="PREMIUM"||fvgLevel&&fvg==="Bearish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bearish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1]);
   const entryConfirmed=!!(side&&structureTrigger&&zoneConfirmed&&(side==="BUY"?candleBull:candleBear));
   const candidate=!!(side&&entryConfirmed&&confluencePct>=60&&separation>=12&&aligned&&macroReady&&!eventRisk&&volumeConfirmed&&dxyFresh&&risk>0&&atrNow>0&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
+  const trendLabel=upTrend&&!downTrend?"BULLISH":downTrend&&!upTrend?"BEARISH":upTrend&&downTrend?"MIXED":"SIDEWAYS / UNCONFIRMED";
+  const reasons=[];
+  if(!side)reasons.push("Bullish and bearish strategy scores are tied or weak");
+  if(side&&!structureTrigger)reasons.push("No confirmed BOS, CHoCH or S/R flip");
+  if(side&&!zoneConfirmed)reasons.push("Price is outside a qualified OB/FVG or premium/discount entry zone");
+  if(side&&!entryConfirmed)reasons.push("Closed-candle entry trigger is not confirmed");
+  if(confluencePct<60)reasons.push("Confluence below 60%");
+  if(separation<12)reasons.push("Bull/bear score separation below 12 points");
+  if(!aligned)reasons.push("1h and 15m trend/momentum are not aligned");
+  if(!macroReady)reasons.push("DXY, official calendar or COMEX context unavailable");
+  if(eventRisk)reasons.push("High-impact economic event blackout");
+  if(!volumeConfirmed)reasons.push("COMEX futures volume confirmation missing or weak");
+  if(!dxyFresh)reasons.push("DXY quote missing or stale");
+  if(!(risk>0&&atrNow>0))reasons.push("Invalid risk distance / ATR");
+  const zoneBounds=side==="BUY"?(ob==="Potential Bullish OB"?obLevel:fvg==="Bullish FVG"?fvgLevel:null):(side==="SELL"?(ob==="Potential Bearish OB"?obLevel:fvg==="Bearish FVG"?fvgLevel:null):null);
+  latestSignalSnapshot={trend:trendLabel,bos:bosUp?"Bullish BOS":bosDown?"Bearish BOS":"Not confirmed",choch:chochUp?"Bullish CHoCH":chochDown?"Bearish CHoCH":"Not confirmed",liquidity:(eqh?"Equal Highs · ":"")+(eql?"Equal Lows · ":"")+(sweepLow?"Sell-side sweep + reclaim":sweepHigh?"Buy-side sweep + rejection":"No confirmed sweep"),ob:ob+(obLevel?" · "+fmt(obLevel[0])+"–"+fmt(obLevel[1]):""),fvg:fvg+(fvgLevel?" · "+fmt(fvgLevel[0])+"–"+fmt(fvgLevel[1]):""),entryZone:zoneBounds?fmt(zoneBounds[0])+" – "+fmt(zoneBounds[1]):fmt(entry-atrNow*.15)+" – "+fmt(entry+atrNow*.15),confluence:confluencePct,reason:candidate?"All technical, multi-timeframe and macro gates passed. Paper-only signal.":(reasons.length?reasons.join(" · "):"No complete high-confluence setup; WAIT.")};
+  renderSignalDetails(latestSignalSnapshot,candidate?"BUY/SELL":"WAIT");
+
   $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" · ENTRY CONFIRMED · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · Dynamic confluence "+confluencePct.toFixed(1)+"% · SMC trigger + zone + closed candle + 1h/15m alignment + ≥60% confluence · R:R 1:1 / 1:2 / 1:3 · Win rate not validated.":"WAIT · dynamic confluence "+confluencePct.toFixed(1)+"% · waiting for structure, SMC zone, closed-candle trigger, 1h/15m alignment, verified DXY + official calendar, fresh COMEX volume/VWAP, no event blackout and clear risk.";
   return candidate?{side,entry,sl,tp1,tp2,tp3,score:Math.round(score),total:totalWeight,atr:atrNow,time:m.last?.t||last.t,macro:{dxy:dxy.price,dxyChangePct:dxy.changePct,volumeRatio:futures.volumeRatio,futuresVwap:futures.vwap,chartPattern:chartPattern.label}}:null;
  }
@@ -516,6 +557,10 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    }else{
     updateLivePanel("WAIT","Candles are verified, but no fresh XAUS spot quote is confirmed. No trade recommendation.","UNAVAILABLE");
    }
+   const finalSide=spotNearCandidate?candidate.side:"WAIT";
+   const finalReason=spotNearCandidate?("BUY/SELL confirmed by SMC + multi-strategy and macro filters; paper-only."):candidate?"Price moved away from the planned entry; no chasing.":(latestSignalSnapshot?.reason||$("advancedPlan").textContent);
+   renderSignalDetails(latestSignalSnapshot,finalSide,finalReason);
+   saveSignalHistory({key:[finalSide,l.last.t,latestSignalSnapshot?.confluence?.toFixed?.(1)||"0"].join("|"),time:Date.now(),candleTime:l.last.t,side:finalSide,trend:latestSignalSnapshot?.trend||bias,confluence:latestSignalSnapshot?.confluence||0,entry:spotNearCandidate?candidate.entry:null,sl:spotNearCandidate?candidate.sl:null,reason:finalReason});
    renderSignalStrength();
    const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=spot.ok?"● SMC DATA CHECKED":"● DATA UNAVAILABLE";
    $("candleMeta").textContent="Source: XAUS /api/v1/chart (XAU series via Yahoo Finance proxy). Refreshed: "+new Date().toLocaleString()+". Last forming candle excluded from indicators.";
