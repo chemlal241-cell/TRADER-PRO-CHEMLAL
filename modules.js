@@ -500,50 +500,6 @@ render();
 })(); 
 
 
-/* Forex session clock — all displayed session hours converted to Morocco time */
-(function(){
- const root=document.querySelector("#overview");
- if(!root||root.querySelector("#marketSessions"))return;
- const panel=document.createElement("article");
- panel.id="marketSessions";panel.className="module-card wide";panel.style.marginTop="16px";
- panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Global Trading Sessions</h2><span id="sessionMoroccoTime" class="module-muted">توقيت المغرب · —</span></div><p class="module-muted" style="margin:8px 0 14px">جميع أوقات الافتتاح والإغلاق بتوقيت المغرب (Africa/Casablanca). الأخضر = الجلسة مفتوحة · الرمادي = مغلقة. تتغير الأوقات تلقائياً مع التوقيت الصيفي في البلدان المعنية.</p><div id="sessionCards" class="module-grid"></div>';
- root.append(panel);
- const sessions=[
-  {name:"Asia · Tokyo",tz:"Asia/Tokyo",start:9,end:18},
-  {name:"London",tz:"Europe/London",start:8,end:17},
-  {name:"New York",tz:"America/New_York",start:8,end:17}
- ];
- const $=id=>panel.querySelector("#"+id);
- const formatter=(tz)=>new Intl.DateTimeFormat("en-GB",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",weekday:"short",hourCycle:"h23"});
- const parts=(date,tz)=>Object.fromEntries(formatter(tz).formatToParts(date).map(p=>[p.type,p.value]));
- function zonedDate(y,m,d,h,tz){
-  const target=Date.UTC(y,m-1,d,h,0,0);let guess=target;
-  for(let n=0;n<3;n++){
-   const p=parts(new Date(guess),tz);
-   const represented=Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day),Number(p.hour),Number(p.minute),0);
-   guess+=target-represented;
-  }
-  return new Date(guess);
- }
- const moroccoTime=d=>new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Casablanca",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
- function render(){
-  const now=new Date(),morocco=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Casablanca",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now);
-  $("sessionMoroccoTime").textContent="توقيت المغرب · "+morocco;
-  $("sessionCards").innerHTML=sessions.map(s=>{
-   const p=parts(now,s.tz),weekday=["Mon","Tue","Wed","Thu","Fri"].includes(p.weekday);
-   const y=Number(p.year),m=Number(p.month),d=Number(p.day);
-   const startUtc=zonedDate(y,m,d,s.start,s.tz),endUtc=zonedDate(y,m,d,s.end,s.tz);
-   const open=weekday&&now>=startUtc&&now<endUtc;
-   const status=open?"الجلسة مفتوحة الآن":"الجلسة مغلقة";
-   const color=open?"#35c98a":"#9aa3ad",bg=open?"#103323":"#20252d",border=open?"#26764a":"#4a515b";
-   return '<div class="module-card" style="border-color:'+border+'"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0;color:#f1d18a">'+s.name+'</h2><span style="padding:5px 9px;border-radius:20px;background:'+bg+';color:'+color+';font-size:11px;font-weight:800">● '+status+'</span></div><div style="font-size:25px;font-weight:800;color:#fff;margin:13px 0 5px">'+moroccoTime(startUtc)+' – '+moroccoTime(endUtc)+'</div><div class="module-muted">موعد الجلسة بتوقيت المغرب</div><div class="module-muted" style="margin-top:5px">'+(weekday?"جدول أيام العمل":"عطلة نهاية الأسبوع · مغلقة عادةً")+'</div></div>';
-  }).join("");
- }
- render();setInterval(render,15000);
- document.addEventListener("visibilitychange",()=>{if(!document.hidden)render()});
-})();
-
-
 /* Reference-style live header controls and Morocco session chips */
 (function(){
  const clock=document.querySelector("#moroccoClock");
