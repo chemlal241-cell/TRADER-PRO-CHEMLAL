@@ -299,26 +299,30 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   return "No strong candle pattern";
  }
  function detectChartPattern(rows,p,atrNow){
-  const hs=p.highs.slice(-3),ls=p.lows.slice(-3),near=Math.max(atrNow*.9,rows[rows.length-1].c*.00025);
+  const hs=p.highs.slice(-3),ls=p.lows.slice(-3),near=Math.max(atrNow*.9,rows[rows.length-1].c*.00025),last=rows[rows.length-1];
   const slope=a=>a.length<2?0:(a[a.length-1].p-a[0].p)/(a[a.length-1].i-a[0].i||1);
-  const hSlope=slope(hs),lSlope=slope(ls),out={label:"No confirmed automated pattern",direction:null};
+  const hSlope=slope(hs),lSlope=slope(ls),out={label:"No pattern detected",direction:null};
   if(hs.length===3&&ls.length>=2){
-   const shoulder=Math.abs(hs[0].p-hs[2].p)<=near;
-   if(hs[1].p>hs[0].p+near*.5&&hs[1].p>hs[2].p+near*.5&&shoulder)return {label:"Head & Shoulders candidate",direction:"BEARISH"};
-   if(hs[1].p<hs[0].p-near*.5&&hs[1].p<hs[2].p-near*.5&&shoulder)return {label:"Inverse Head & Shoulders candidate",direction:"BULLISH"};
+   const shoulder=Math.abs(hs[0].p-hs[2].p)<=near,neck=(ls[ls.length-1].p+ls[ls.length-2].p)/2;
+   if(hs[1].p>hs[0].p+near*.5&&hs[1].p>hs[2].p+near*.5&&shoulder)return {label:last.c<neck?"Head & Shoulders · neckline broken":"Head & Shoulders candidate · awaiting neckline break",direction:last.c<neck?"BEARISH":null};
+   if(hs[1].p<hs[0].p-near*.5&&hs[1].p<hs[2].p-near*.5&&shoulder){const cap=(hs[0].p+hs[2].p)/2;return {label:last.c>cap?"Inverse Head & Shoulders · neckline broken":"Inverse Head & Shoulders candidate · awaiting neckline break",direction:last.c>cap?"BULLISH":null}}
   }
   if(hs.length===3&&ls.length===3){
-   if(hs[2].p<hs[0].p-near*.2&&ls[2].p>ls[0].p+near*.2)return {label:"Symmetrical Triangle candidate",direction:null};
+   const upper=hs[2].p,lower=ls[2].p;
+   if(hs[2].p<hs[0].p-near*.2&&ls[2].p>ls[0].p+near*.2)return {label:last.c>upper?"Symmetrical Triangle · upside breakout":last.c<lower?"Symmetrical Triangle · downside breakout":"Symmetrical Triangle candidate · awaiting breakout",direction:last.c>upper?"BULLISH":last.c<lower?"BEARISH":null};
    const narrowing=Math.abs(hs[2].p-ls[2].p)<Math.abs(hs[0].p-ls[0].p);
-   if(narrowing&&hSlope<0&&lSlope<0)return {label:"Falling Wedge candidate",direction:"BULLISH"};
-   if(narrowing&&hSlope>0&&lSlope>0)return {label:"Rising Wedge candidate",direction:"BEARISH"};
-   if(Math.abs(hSlope)<near/rows.length&&lSlope>0)return {label:"Ascending Triangle candidate",direction:"BULLISH"};
-   if(Math.abs(lSlope)<near/rows.length&&hSlope<0)return {label:"Descending Triangle candidate",direction:"BEARISH"};
+   if(narrowing&&hSlope<0&&lSlope<0)return {label:last.c>upper?"Falling Wedge · upside breakout":"Falling Wedge candidate · awaiting breakout",direction:last.c>upper?"BULLISH":null};
+   if(narrowing&&hSlope>0&&lSlope>0)return {label:last.c<lower?"Rising Wedge · downside breakout":"Rising Wedge candidate · awaiting breakout",direction:last.c<lower?"BEARISH":null};
+   if(Math.abs(hSlope)<near/rows.length&&lSlope>0)return {label:last.c>upper?"Ascending Triangle · breakout":"Ascending Triangle candidate · awaiting breakout",direction:last.c>upper?"BULLISH":null};
+   if(Math.abs(lSlope)<near/rows.length&&hSlope<0)return {label:last.c<lower?"Descending Triangle · breakdown":"Descending Triangle candidate · awaiting breakdown",direction:last.c<lower?"BEARISH":null};
   }
-  const pole=rows.slice(-12,-6),flag=rows.slice(-6);
-  if(pole.length===6&&flag.length===6){
-   const move=pole[5].c-pole[0].o,flagRange=Math.max(...flag.map(x=>x.h))-Math.min(...flag.map(x=>x.l)),drift=flag[5].c-flag[0].o;
-   if(Math.abs(move)>atrNow*2.2&&flagRange<Math.abs(move)*.7&&Math.sign(drift)!==Math.sign(move))return {label:"Flag candidate",direction:move>0?"BULLISH":"BEARISH"};
+  const pole=rows.slice(-12,-6),flag=rows.slice(-6,-1);
+  if(pole.length===6&&flag.length===5){
+   const move=pole[5].c-pole[0].o,flagRange=Math.max(...flag.map(x=>x.h))-Math.min(...flag.map(x=>x.l)),drift=flag[4].c-flag[0].o;
+   const bull=move>atrNow*2.2&&flagRange<Math.abs(move)*.7&&drift<0&&last.c>Math.max(...flag.map(x=>x.h));
+   const bear=move< -atrNow*2.2&&flagRange<Math.abs(move)*.7&&drift>0&&last.c<Math.min(...flag.map(x=>x.l));
+   if(bull||bear)return {label:bull?"Bull Flag · upside breakout":"Bear Flag · downside breakout",direction:bull?"BULLISH":"BEARISH"};
+   if(Math.abs(move)>atrNow*2.2&&flagRange<Math.abs(move)*.7&&Math.sign(drift)!==Math.sign(move))return {label:"Flag candidate · awaiting breakout",direction:null};
   }
   return out;
  }
@@ -414,6 +418,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const londonMin=Number(london.split(":")[0])*60+Number(london.split(":")[1]),nyMin=Number(ny.split(":")[0])*60+Number(ny.split(":")[1]);
   const londonOn=londonMin>=480&&londonMin<1020,nyOn=nyMin>=570&&nyMin<960;
   const patternText=pat+" · Double top/bottom candidates: "+(eqh||eql?"possible equal swing levels":"not confirmed")+" · Triangle/wedge/flag: visual confirmation required";
+  const nextEvent=macro?.calendar?.events?.find(e=>e.time>Date.now());
   const lines=[
    ["Market structure","HH / HL bullish: "+(hhhl?"yes":"no")+" · LH / LL bearish: "+(lhll?"yes":"no"),"BOS "+(bosUp?"up":bosDown?"down":"none")+" · CHoCH "+(chochUp?"bullish":chochDown?"bearish":"none")],
    ["Liquidity","EQH "+(eqh?"yes":"no")+" / EQL "+(eql?"yes":"no"),"Sweep "+(sweepLow?"sell-side reclaimed":sweepHigh?"buy-side rejected":"none confirmed")],
@@ -433,7 +438,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ["Automated chart patterns",chartPattern.label+" · "+(chartPattern.direction||"neutral / wait"),"H&S, inverse H&S, triangles, wedges and flags are algorithmic candidates; confirm breakout on chart"],
    ["DXY · US Dollar Index",dxyFresh?fmt(dxy.price)+" · "+(dxy.changePct>0?"+":"")+fmt(dxy.changePct)+"% day":"DXY unavailable / stale","Inverse gold context: "+(dxyBull?"USD weakness supports gold":dxyBear?"USD strength pressures gold":"neutral / no directional edge")],
    ["COMEX volume · futures VWAP",futuresFresh?"Volume ratio "+fmt(futures.volumeRatio)+"× · futures VWAP "+fmt(futures.vwap):"COMEX volume unavailable / stale","GC=F real futures volume proxy, not XAU spot volume. Confirmation "+(volumeConfirmed?"passed":"not passed")],
-   ["Official event risk",eventRisk?eventRisk.type+" · "+eventRisk.title:"No CPI/NFP/FOMC release inside blackout window","Calendar "+(macro?.calendar?.ok?"BLS + Federal Reserve verified":"not verified")+" · "+(macro?.updatedAt||"source unavailable")],
+   ["Official event risk",eventRisk?eventRisk.type+" · "+eventRisk.title:nextEvent? "Next: "+nextEvent.type+" · "+nextEvent.title+" · "+new Date(nextEvent.time).toLocaleString():"No upcoming CPI/NFP/FOMC event found","Calendar "+(macro?.calendar?.ok?"BLS + Federal Reserve verified":"not verified")+" · "+(macro?.updatedAt||"source unavailable")],
    ["Sessions","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Sessions are context only; event blackout overrides technical setups"]
   ];
   const host=$("advancedRows");host.innerHTML="";
