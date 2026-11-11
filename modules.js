@@ -292,22 +292,18 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const londonOn=londonMin>=480&&londonMin<1020,nyOn=nyMin>=570&&nyMin<960;
   const patternText=pat+" · Double top/bottom candidates: "+(eqh||eql?"possible equal swing levels":"not confirmed")+" · Triangle/wedge/flag: visual confirmation required";
   const lines=[
-   ["Structure",hhhl?"HH / HL bullish":lhll?"LH / LL bearish":"Range / mixed", "BOS "+(bosUp?"up":bosDown?"down":"none")+" · CHoCH "+(chochUp?"bullish":chochDown?"bearish":"none")],
-   ["Liquidity", "EQH "+(eqh?"yes":"no")+" / EQL "+(eql?"yes":"no"),"Sweep "+(sweepLow?"sell-side reclaimed":sweepHigh?"buy-side rejected":"none confirmed")],
-   ["S/R flip + round levels","Resistance→support "+(srFlipUp?"candidate":"no")+" · Support→resistance "+(srFlipDown?"candidate":"no"),"Nearest $50 levels: "+roundLevels.map(fmt).join(" / ")],
-   ["Order blocks / S&D",ob,obLevel?fmt(obLevel[0])+" – "+fmt(obLevel[1]):"No qualified recent displacement zone"],
-   ["Fair Value Gap",fvg,fvgLevel?fmt(fvgLevel[0])+" – "+fmt(fvgLevel[1]):"No 3-candle gap"],
-   ["Premium / Discount",zone,"50% range "+fmt(midpoint)+" · "+(zone==="DISCOUNT"?"discount buys preferred":zone==="PREMIUM"?"premium sells preferred":"mid-range")],
-   ["Fibonacci / OTE",fib?fib.direction+" · 0.50 "+fmt(fib.r50)+" · 0.618 "+fmt(fib.r618)+" · 0.705 "+fmt(fib.r705)+" · 0.786 "+fmt(fib.r786):"No chronological confirmed swing leg","Extensions 1.272 "+fmt(fib?.e1272)+" · 1.618 "+fmt(fib?.e1618)],
-   ["Sweep + reclaim + CHoCH",bullSweepShift?"Bullish sell-side sweep → reclaim → CHoCH":bearSweepShift?"Bearish buy-side sweep → rejection → CHoCH":"No complete sweep/reclaim + CHoCH trigger","A liquidity sweep alone is not an entry trigger"],
-   ["Trend indicators","EMA9 "+fmt(ema9)+" · EMA21 "+fmt(ema21)+" · EMA50 "+fmt(ema50)+" · EMA200 "+fmt(ema200),"SuperTrend "+(st?.direction||"n/a")+" · ADX "+fmt(adxVal)],
-   ["Ichimoku / Momentum","Tenkan "+fmt(ichi?.tenkan)+" · Kijun "+fmt(ichi?.kijun),"RSI "+fmt(rsiVal)+" · MACD hist "+fmt(macdVal?.hist)+" · Stoch "+fmt(stoch)],
-   ["Bollinger / VWAP","BB "+(bb?"L "+fmt(bb.lower)+" / U "+fmt(bb.upper):"n/a")+" · stretch "+(bbStretchBull?"below lower":bbStretchBear?"above upper":"no outer-band stretch"),"VWAP "+(vwap!==null?fmt(vwap)+" · control "+(vwapBull?"buyers above VWAP":vwapBear?"sellers below VWAP":"at VWAP"):"not shown: volume absent/unverified")],
-   ["Candles / patterns",patternText,"Divergence "+(bullDiv?"bullish":bearDiv?"bearish":"none confirmed")],
-   ["Sessions","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Times from live timezone clock; session overlap only when both open"],
-   ["Trendlines / channels / formations","Swing highs: "+(ph.length===2?(ph[1].p>ph[0].p?"rising":ph[1].p<ph[0].p?"falling":"flat"):"insufficient pivots")+" · swing lows: "+(pl.length===2?(pl[1].p>pl[0].p?"rising":pl[1].p<pl[0].p?"falling":"flat"):"insufficient pivots"),"Double tops/bottoms, H&S, triangles, wedges and flags require chart-level visual confirmation"],
-   ["News / DXY","Investing.com headlines feed linked in News panel; not an event-risk filter","Economic calendar/CPI/NFP/FOMC schedule and DXY live series are not connected; avoid entries around high-impact releases"]
-  ];
+   ["Market structure","HH / HL bullish: "+(hhhl?"yes":"no")+" · LH / LL bearish: "+(lhll?"yes":"no"),"BOS "+(bosUp?"up":bosDown?"down":"none")+" · CHoCH "+(chochUp?"bullish":chochDown?"bearish":"none")],
+   ["Liquidity","EQH "+(eqh?"yes":"no")+" / EQL "+(eql?"yes":"no"),"Sweep "+(sweepLow?"sell-side reclaimed":sweepHigh?"buy-side rejected":"none confirmed")],
+   ["Order Blocks / Supply & Demand",ob,obLevel?fmt(obLevel[0])+" – "+fmt(obLevel[1]):"No qualified recent displacement zone"],
+   ["Fair Value Gap",fvg,fvgLevel?fmt(fvgLevel[0])+" – "+fmt(fvgLevel[1]):"No three-candle gap"],
+   ["Premium / Discount",zone,"50% dealing-range midpoint "+fmt(midpoint)],
+   ["OTE / Fibonacci",fib?fib.direction+" · 0.50 "+fmt(fib.r50)+" · 0.618 "+fmt(fib.r618)+" · 0.705 "+fmt(fib.r705)+" · 0.786 "+fmt(fib.r786):"No confirmed swing leg","Extensions 1.272 "+fmt(fib?.e1272)+" · 1.618 "+fmt(fib?.e1618)],
+   ["Sweep + reclaim + structure shift",bullSweepShift?"Bullish sweep → reclaim → CHoCH":bearSweepShift?"Bearish sweep → rejection → CHoCH":"No complete SMC trigger","A liquidity sweep alone is not an entry"],
+   ["EMA confirmation","EMA9 "+fmt(ema9)+" · EMA21 "+fmt(ema21)+" · EMA50 "+fmt(ema50)+" · EMA200 "+fmt(ema200),"Bullish alignment "+(ema9>ema21&&ema21>ema50?"yes":"no")+" · bearish alignment "+(ema9<ema21&&ema21<ema50?"yes":"no")],
+   ["RSI / MACD confirmations","RSI14 "+fmt(rsiVal)+" · MACD histogram "+fmt(macdVal?.hist),"Bullish confirmation "+(rsiVal>50&&macdVal?.hist>0?"yes":"no")+" · bearish confirmation "+(rsiVal<50&&macdVal?.hist<0?"yes":"no")],
+   ["Closed-candle trigger",pat,"Pattern must occur at a meaningful SMC zone and be confirmed on candle close"],
+   ["Session / event risk","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Verify CPI, NFP and FOMC schedule from a reliable calendar before any setup"]
+
   const host=$("advancedRows");host.innerHTML="";
   const table=document.createElement("table");table.className="module-table";
   const body=document.createElement("tbody");
