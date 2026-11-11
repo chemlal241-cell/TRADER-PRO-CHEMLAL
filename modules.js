@@ -98,12 +98,15 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const panel=document.createElement("article");
  panel.className="module-card wide";
  panel.style.marginTop="16px";
- panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · Historical Candle Engine</h2><span id="candleStatus" class="module-muted">NOT CHECKED</span></div>'+
+ panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · Live Signal Engine</h2><span id="candleStatus" class="module-muted">NOT CHECKED</span></div>'+
  '<p class="module-muted">XAUS OHLC candles · 5m / 15m / 1h · EMA 20/50, RSI 14, MACD 12/26/9, ATR 14. A directional bias is analysis only, not a trade signal.</p>'+
  '<div class="module-grid" style="margin-top:12px">'+
  '<div class="module-card"><h2>Multi-timeframe analysis</h2><div id="candleRows" class="module-muted">Press refresh to load real candle data.</div><button id="candleRefresh" style="margin-top:12px">Load / refresh candles</button><p id="candleMeta" class="module-muted">Source: XAUS chart API · Yahoo Finance proxy · XAUUSD reference series.</p></div>'+
  '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
  root.append(panel);
+ const candleHistoryCard=panel.querySelector("#candleRows")?.closest(".module-card");
+ if(candleHistoryCard)candleHistoryCard.style.display="none";
+ const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
  panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology. RSI, MACD and EMA are secondary confirmations only. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
  function updateLivePanel(signal,description,biasLabel,plan){
@@ -386,7 +389,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const spot=await getFreshSpot();
    const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
    if(spotNearCandidate){
-    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Historical strategy win rate: N/A (no validated backtest sample). Paper-test only.",bias,candidate);
+    updateLivePanel(candidate.side+" CANDIDATE · PAPER ONLY",candidate.side+" setup from closed candles; fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Entry/SL/TP are technical estimates, not validated trade instructions. Paper-test only.",bias,candidate);
    }else if(candidate){
     updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
    }else if(spot.ok){
