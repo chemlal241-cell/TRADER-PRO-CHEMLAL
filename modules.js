@@ -377,14 +377,14 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const fibBull=!!fib&&/bull/i.test(fib.direction);
   const fibBear=!!fib&&/bear/i.test(fib.direction);
   const bullTech=[
-   [adxStrong&&upTrend,4],[stoch!==null&&stoch>50,3],[bbStretchBull,3],
+   [adxStrong&&upTrend,4],[stoch!==null&&stoch>50,2],[bbStretchBull,2],
    [!!ichi&&last.c>Math.max(ichi.spanA,ichi.spanB)&&ichi.tenkan>ichi.kijun,4],
-   [!!st&&st.direction==="BULLISH",4],[futuresVwapBull,2],[bullDiv,3],[patternBull,1],[fibBull,1],[chartPattern.direction==="BULLISH",2],[dxyBull,2],[volumeConfirmed,3]
+   [!!st&&st.direction==="BULLISH",4],[futuresVwapBull,2],[bullDiv,3],[patternBull,1],[fibBull,1],[chartPattern.direction==="BULLISH",2],[dxyBull,2],[volumeConfirmed&&futuresVwapBull,3]
   ];
   const bearTech=[
-   [adxStrong&&downTrend,4],[stoch!==null&&stoch<50,3],[bbStretchBear,3],
+   [adxStrong&&downTrend,4],[stoch!==null&&stoch<50,2],[bbStretchBear,2],
    [!!ichi&&last.c<Math.min(ichi.spanA,ichi.spanB)&&ichi.tenkan<ichi.kijun,4],
-   [!!st&&st.direction==="BEARISH",4],[futuresVwapBear,2],[bearDiv,3],[patternBear,1],[fibBear,1],[chartPattern.direction==="BEARISH",2],[dxyBear,2],[volumeConfirmed,3]
+   [!!st&&st.direction==="BEARISH",4],[futuresVwapBear,2],[bearDiv,3],[patternBear,1],[fibBear,1],[chartPattern.direction==="BEARISH",2],[dxyBear,2],[volumeConfirmed&&futuresVwapBear,3]
   ];
   const bullFactors=[
    [hhhl,weights.structure],[bosUp||chochUp,weights.break],[sweepLow,weights.liquidity],
