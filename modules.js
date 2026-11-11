@@ -177,6 +177,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp,source:"XAUS"};
    }
    latestSpotQuote=quote;
+   window.dispatchEvent(new CustomEvent("chemlal:spotquote",{detail:quote}));
    // Keep every visible gold price synchronized to this single quote response.
    const panelPrice=quote.ok?"$"+Number(quote.price).toFixed(2):"—";
    const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");
@@ -644,26 +645,19 @@ render();
   else {candles=base.map(c=>c.time===bucket?live:c)}
   lastPrice=q.price;draw();
  }
- async function poll(){
-  if(document.hidden)return;
-  try{
-   const r=await fetch("/api/xm-quote",{cache:"no-store"}),q=await r.json();
-   const fresh=r.ok&&q.ok&&finite(Number(q.price))&&Number(q.age)<=20;
-   if(!fresh){
-    stateEl.textContent="WAITING FOR FRESH XM MT5 TICK";stateEl.style.color="#e5a84b";
-    if(badge)badge.textContent="● XM MT5 NOT FRESH";
-    if(footEl)footEl.textContent="Historical chart remains visible; live candle waits for a fresh XM MT5 quote.";
-    return;
-   }
-   const price=Number(q.price);
-   priceEl.textContent="$"+price.toFixed(2);stateEl.textContent="● XM MT5 LIVE · "+Math.max(0,Math.round(Number(q.age)))+"s";stateEl.style.color="#35c98a";
-   if(badge)badge.textContent="● LIVE · XM MT5";
-   applyTick({price,bid:Number(q.bid),ask:Number(q.ask)});
-   if(footEl)footEl.textContent="Live candle + price line: XM MT5 · Historical 5m candles: XAUS reference · "+(q.symbol||"XAUUSD")+" · Bid "+(finite(Number(q.bid))?Number(q.bid).toFixed(2):"—")+" / Ask "+(finite(Number(q.ask))?Number(q.ask).toFixed(2):"—");
-  }catch(e){
-   stateEl.textContent="XM MT5 BRIDGE NOT CONNECTED";stateEl.style.color="#e5a84b";
-   if(badge)badge.textContent="● BRIDGE NOT CONNECTED";
+ function onQuote(event){
+  const q=event.detail||{};
+  if(!q.ok||!finite(Number(q.price))){
+   stateEl.textContent="WAITING FOR FRESH XM MT5 TICK";stateEl.style.color="#e5a84b";
+   if(badge)badge.textContent="● XM MT5 NOT FRESH";
+   if(footEl)footEl.textContent="Historical chart remains visible; live candle waits for a fresh XM MT5 quote.";
+   return;
   }
+  const price=Number(q.price);
+  priceEl.textContent="$"+price.toFixed(2);stateEl.textContent="● "+(q.source||"LIVE")+" · "+Math.max(0,Math.round(Number(q.age)||0))+"s";stateEl.style.color="#35c98a";
+  if(badge)badge.textContent="● LIVE · "+(q.source||"MARKET DATA");
+  applyTick({price,bid:Number(q.bid),ask:Number(q.ask)});
+  if(footEl)footEl.textContent="Live candle + price line: "+(q.source||"market feed")+" · Historical 5m candles: XAUS reference · XAUUSD · Bid "+(finite(Number(q.bid))?Number(q.bid).toFixed(2):"—")+" / Ask "+(finite(Number(q.ask))?Number(q.ask).toFixed(2):"—");
  }
  function draw(){
   const rect=canvas.getBoundingClientRect(),dpr=Math.max(1,window.devicePixelRatio||1),w=Math.max(320,rect.width),h=Math.max(260,rect.height||420);
@@ -693,6 +687,6 @@ render();
  }
  if(window.ResizeObserver)new ResizeObserver(draw).observe(wrap);
  window.addEventListener("resize",draw);
- loadHistory();poll();setInterval(poll,1000);setInterval(loadHistory,300000);
+ loadHistory();window.addEventListener("chemlal:spotquote",onQuote);setInterval(loadHistory,300000);
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
 })();
