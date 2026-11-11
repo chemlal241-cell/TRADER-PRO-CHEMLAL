@@ -112,12 +112,11 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  let activeSignalPlan=null,latestSpotQuote=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
-  const plan=activeSignalPlan,ai=geminiReviewCache;
+  const plan=activeSignalPlan;
   const base=plan&&plan.total>0?Math.max(0,Math.min(100,plan.score/plan.total*100)):0;
-  const aiScore=ai&&!ai.error&&Number.isFinite(Number(ai.alignment))?Math.max(0,Math.min(100,Number(ai.alignment))):base;
   const freshness=latestSpotQuote&&latestSpotQuote.ok?Math.max(0,100-Math.min(100,latestSpotQuote.age/1.8)):0;
   const priceFit=plan&&latestSpotQuote&&latestSpotQuote.ok&&Number.isFinite(plan.atr)&&plan.atr>0?Math.max(0,100-Math.abs(latestSpotQuote.price-plan.entry)/plan.atr*100):0;
-  const score=plan?Math.round(base*.55+aiScore*.20+freshness*.15+priceFit*.10):0;
+  const score=plan?Math.round(base*.70+freshness*.20+priceFit*.10):0;
   const value=card.querySelector("#aiConfidenceValue"),bar=card.querySelector("#aiConfidenceBar"),label=card.querySelector("#aiConfidenceLabel");
   if(value)value.textContent=score+"%";
   if(bar){bar.style.width=score+"%";bar.dataset.strength=score<40?"low":score<70?"medium":"high";}
@@ -160,21 +159,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   }catch(_){return {ok:false}}
  }
  const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];
- let refreshTimer=null,loading=false,lastGeminiCandle=0,geminiReviewCache=null;
- async function reviewWithGemini(results,candidate,spot,bias){
-  const five=results.find(x=>x.tf==="5m"),fifteen=results.find(x=>x.tf==="15m"),hour=results.find(x=>x.tf==="1h");
-  if(!five||!fifteen||!hour)return null;
-  const stamp=five.last.t;if(stamp===lastGeminiCandle)return geminiReviewCache;lastGeminiCandle=stamp;
-  const bars=x=>x.rows.slice(-6).map(b=>({o:b.o,h:b.h,l:b.l,c:b.c}));
-  const snapshot={symbol:"XAUUSD",bias,spot:spot&&spot.ok?spot.price:null,spotFresh:!!(spot&&spot.ok),
-   timeframes:{
-    "5m":{close:five.last.c,ema20:five.ema20,ema50:five.ema50,rsi:five.rsi,macdHistogram:five.macd?.hist,atr:five.atr,recentClosedBars:bars(five)},
-    "15m":{close:fifteen.last.c,ema20:fifteen.ema20,ema50:fifteen.ema50,rsi:fifteen.rsi,macdHistogram:fifteen.macd?.hist,atr:fifteen.atr,recentClosedBars:bars(fifteen)},
-    "1h":{close:hour.last.c,ema20:hour.ema20,ema50:hour.ema50,rsi:hour.rsi,macdHistogram:hour.macd?.hist,atr:hour.atr,recentClosedBars:bars(hour)}},
-   smcCandidate:candidate?{side:candidate.side,entry:candidate.entry,stopLoss:candidate.sl,tp1:candidate.tp1,tp2:candidate.tp2,tp3:candidate.tp3,confluence:candidate.total?Math.round(candidate.score/candidate.total*100):0}:null};
-  try{const response=await fetch("/api/gemini",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({snapshot})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Gemini API unavailable");geminiReviewCache=data;return data}
-  catch(error){geminiReviewCache={error:String(error.message||error)};return geminiReviewCache}
- }
+ let refreshTimer=null,loading=false;
  const finite=n=>Number.isFinite(n);
  function normalize(raw){
   const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
@@ -426,23 +411,18 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("candleReason").textContent="1h EMA20/50: "+(up?"bullish":down?"bearish":"flat")+". 15m MACD/RSI: "+(momUp?"bullish momentum":momDown?"bearish momentum":"mixed momentum")+". 5m last closed candle: "+new Date(l.last.t).toLocaleString()+".";
    $("candleQuality").textContent="Valid bars: 5m "+l.count+" · 15m "+m.count+" · 1h "+h.count+" | Oldest last-closed age: "+Math.round(candleAge/60000)+" min. Confluence is not a probability.";
    const spot=await getFreshSpot();
-   const ai=await reviewWithGemini(results,candidate,spot,bias);
-   const aiNote=root.querySelector("#aiGeminiNote"),aiReady=!!(ai&&!ai.error);
-   if(aiNote)aiNote.textContent=aiReady?"Gemini AI · "+ai.decision+" · "+ai.riskLevel+" RISK · "+ai.alignment+"% alignment":"Gemini AI unavailable · "+(ai?.error||"API key setup required");
    const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
-   const aiConfirms=!!(aiReady&&candidate&&ai.decision===candidate.side&&ai.riskLevel!=="HIGH");
-   if(spotNearCandidate&&aiConfirms){
-    updateLivePanel(candidate.side+" · SMC + GEMINI CONFIRMED",candidate.side+" setup passed SMC entry rules and Gemini review. "+(ai.summary||"Gemini agrees with the SMC setup.")+" Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Paper-test only.",bias,candidate);
-   }else if(candidate&&spotNearCandidate&&!aiConfirms){
-    updateLivePanel("WAIT · AI / SMC NOT ALIGNED","SMC detected a "+candidate.side+" setup, but Gemini did not confirm the same direction or flagged high risk. No trade.",bias);
+   if(spotNearCandidate){
+    updateLivePanel(candidate.side+" · SMC ENTRY CONFIRMED",candidate.side+" setup passed the SMC entry rules with EMA, RSI and MACD confirmations. Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Paper-test only.",bias,candidate);
    }else if(candidate){
     updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" SMC setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
    }else if(spot.ok){
-    updateLivePanel("WAIT · "+bias+" BIAS","Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz and verified 5m/15m/1h candles. SMC entry conditions are not confirmed; Gemini cannot create a trade by itself.",bias);
+    updateLivePanel("WAIT · "+bias+" BIAS","Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz and verified 5m/15m/1h candles. SMC entry conditions are not confirmed.",bias);
    }else{
     updateLivePanel("WAIT","Candles are verified, but no fresh XAUS spot quote is confirmed. No trade recommendation.","UNAVAILABLE");
    }
-   const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=aiReady?"● GEMINI REVIEWED":"● GEMINI OFFLINE";
+   renderSignalStrength();
+   const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=spot.ok?"● SMC DATA CHECKED":"● DATA UNAVAILABLE";
    $("candleMeta").textContent="Source: XAUS /api/v1/chart (XAU series via Yahoo Finance proxy). Refreshed: "+new Date().toLocaleString()+". Last forming candle excluded from indicators.";
   }catch(error){
    $("candleStatus").textContent="DATA UNAVAILABLE / STALE";
@@ -455,7 +435,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   }finally{loading=false}
  }
  $("candleRefresh").addEventListener("click",()=>load());
- // Spot quote refreshes every second; closed-candle indicators and Gemini review refresh every 2 minutes / new candle.
+ // Spot quote and strength bar refresh every second; closed-candle strategy analysis refreshes every 2 minutes / new candle.
  load();
  refreshTimer=setInterval(()=>{if(!document.hidden)getFreshSpot()},1000);
  setInterval(()=>{if(!document.hidden&&!loading)load()},120000);
