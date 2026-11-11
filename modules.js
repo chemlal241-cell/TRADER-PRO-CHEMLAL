@@ -110,13 +110,21 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const $=id=>panel.querySelector("#"+id);
  panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology. RSI, MACD and EMA are secondary confirmations only. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
  function updateLivePanel(signal,description,biasLabel,plan){
-  const strong=root.querySelector(".card .signal strong");
-  const desc=root.querySelector('.card .signal [data-i="waitDesc"]');
-  if(strong){strong.textContent=signal;strong.style.color=plan?(plan.side==="BUY"?"#35dc85":"#ff777d"):"#f3d99d";}
-  if(desc)desc.textContent=description;
-  const levels=root.querySelectorAll(".card .metrics .metric b");
-  const values=plan?[plan.entry,plan.sl,plan.tp1,plan.tp2,plan.tp3]:["—","—","—","—","—"];
-  levels.forEach((el,i)=>{if(el)el.textContent=plan&&Number.isFinite(values[i])?"$"+fmt(values[i]):"—"});
+  const card=root.querySelector(".ai-signal-card");
+  if(card){
+   const side=plan?plan.side:(String(signal).includes("SELL")?"SELL":String(signal).includes("BUY")?"BUY":"WAIT");
+   card.classList.toggle("is-buy",side==="BUY");card.classList.toggle("is-sell",side==="SELL");
+   const set=(id,value)=>{const el=card.querySelector("#"+id);if(el)el.textContent=value};
+   set("aiSignalSide",side==="BUY"?"📈 BUY":side==="SELL"?"📉 SELL":"WAIT");
+   set("aiSignalLive",String(signal).includes("UNAVAILABLE")?"● DATA UNAVAILABLE":"● DATA CHECKED");
+   set("aiSignalDescription",description||"Waiting for a confirmed setup.");
+   const values=plan?[plan.entry,plan.sl,plan.tp1,plan.tp2,plan.tp3]:[null,null,null,null,null];
+   ["aiEntry","aiStop","aiTp1","aiTp2","aiTp3"].forEach((id,i)=>set(id,Number.isFinite(values[i])?"$"+fmt(values[i]):"—"));
+   const pct=plan&&Number.isFinite(plan.score)&&Number.isFinite(plan.total)&&plan.total>0?Math.max(0,Math.min(100,plan.score/plan.total*100)):0;
+   set("aiConfidenceValue",plan?pct.toFixed(1)+"%":"—");
+   set("aiConfidenceLabel",plan?"SMC confluence · not win probability":"No confirmed entry · WAIT");
+   const bar=card.querySelector("#aiConfidenceBar");if(bar)bar.style.width=pct+"%";
+  }
   const context=root.querySelectorAll(".card")[1];
   if(context){
    const rows=context.querySelectorAll(".list b");
