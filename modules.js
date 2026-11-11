@@ -496,6 +496,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const aiBadge=root.querySelector("#aiSignalLive");if(aiBadge)aiBadge.textContent=aiConfig.configured?"● GEMINI AI READY":"● GEMINI API KEY REQUIRED";
    if(!aiConfig.configured)$("advancedPlan").textContent="WAIT · Gemini AI review is not configured. Add GEMINI_API_KEY to Vercel environment variables; no BUY/SELL signal can pass without AI approval.";
    const candidate=analyzeAdvanced(results,macro);
+   if(!candidate){const blockers=[];if(!macro?.calendar?.ok)blockers.push("official BLS/Fed calendar unavailable");if(!macro?.dxy?.ok)blockers.push("DXY missing or stale");if(!macro?.goldFutures?.ok)blockers.push("COMEX volume/VWAP missing or stale");if(macro?.calendar?.activeRisk)blockers.push("high-impact event blackout active");if(macro?.goldFutures?.data&&Number(macro.goldFutures.data.volumeRatio)<1.2)blockers.push("volume confirmation below 1.2×");if(!aiConfig.configured)blockers.push("Gemini API key not configured");$("advancedPlan").textContent="WAIT · "+(blockers.length?blockers.join(" · "):"technical entry conditions not met")+". No trade signal until all required checks pass."}
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
    if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
    const up=h.ema20>h.ema50,down=h.ema20<h.ema50;
