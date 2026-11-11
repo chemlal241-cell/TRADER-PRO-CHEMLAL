@@ -20,9 +20,9 @@ module.exports = async function handler(req, res) {
       "Return concise JSON only with keys: decision, riskLevel, alignment (0-100 integer; confluence score, NOT probability), summary, reasons (array of max 3 short strings).",
       "Market snapshot JSON: " + serialized
     ].join("\n");
-    const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent?key=" + encodeURIComponent(key), {
+    const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: "application/json", temperature: 0.1, maxOutputTokens: 220 }
