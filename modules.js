@@ -109,7 +109,22 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
  panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology. RSI, MACD and EMA are secondary confirmations only. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
+ let activeSignalPlan=null,latestSpotQuote=null;
+ function renderSignalStrength(){
+  const card=root.querySelector(".ai-signal-card");if(!card)return;
+  const plan=activeSignalPlan,ai=geminiReviewCache;
+  const base=plan&&plan.total>0?Math.max(0,Math.min(100,plan.score/plan.total*100)):0;
+  const aiScore=ai&&!ai.error&&Number.isFinite(Number(ai.alignment))?Math.max(0,Math.min(100,Number(ai.alignment))):base;
+  const freshness=latestSpotQuote&&latestSpotQuote.ok?Math.max(0,100-Math.min(100,latestSpotQuote.age/1.8)):0;
+  const priceFit=plan&&latestSpotQuote&&latestSpotQuote.ok&&Number.isFinite(plan.atr)&&plan.atr>0?Math.max(0,100-Math.abs(latestSpotQuote.price-plan.entry)/plan.atr*100):0;
+  const score=plan?Math.round(base*.55+aiScore*.20+freshness*.15+priceFit*.10):0;
+  const value=card.querySelector("#aiConfidenceValue"),bar=card.querySelector("#aiConfidenceBar"),label=card.querySelector("#aiConfidenceLabel");
+  if(value)value.textContent=score+"%";
+  if(bar){bar.style.width=score+"%";bar.dataset.strength=score<40?"low":score<70?"medium":"high";}
+  if(label)label.textContent="Analysis strength · "+(score<40?"WEAK":score<70?"MODERATE":"STRONG")+" · not win probability";
+ }
  function updateLivePanel(signal,description,biasLabel,plan){
+  activeSignalPlan=plan||null;
   const card=root.querySelector(".ai-signal-card");
   if(card){
    const side=plan?plan.side:(String(signal).includes("SELL")?"SELL":String(signal).includes("BUY")?"BUY":"WAIT");
@@ -139,7 +154,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const stamp=Date.parse(data.price_as_of||data.data_state?.as_of||data.updated_at||"");
    const age=Number.isFinite(stamp)?Math.max(0,(Date.now()-stamp)/1000):Infinity;
    const ok=response.ok&&data.data_state?.status==="fresh"&&age<=180&&Number.isFinite(Number(data.spot_usd_oz));
-   return {ok,price:Number(data.spot_usd_oz),age};
+   const quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp};latestSpotQuote=quote;
+   const priceEl=root.querySelector("#aiLivePrice"),ageEl=root.querySelector("#aiPriceAge");if(priceEl)priceEl.textContent=ok?"$"+quote.price.toFixed(2):"Unavailable";if(ageEl)ageEl.textContent=ok?"Quote age "+Math.round(age)+"s · source timestamp":"No fresh source quote";renderSignalStrength();
+   return quote;
   }catch(_){return {ok:false}}
  }
  const intervals=[{name:"5m",range:"5d",minutes:5},{name:"15m",range:"1mo",minutes:15},{name:"1h",range:"3mo",minutes:60}];
@@ -438,10 +455,11 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   }finally{loading=false}
  }
  $("candleRefresh").addEventListener("click",()=>load());
- // Start automatically when Live Signals initializes; refresh every 2 minutes.
+ // Spot quote refreshes every second; closed-candle indicators and Gemini review refresh every 2 minutes / new candle.
  load();
- refreshTimer=setInterval(()=>{if(!document.hidden)load()},120000);
- document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
+ refreshTimer=setInterval(()=>{if(!document.hidden)getFreshSpot()},1000);
+ setInterval(()=>{if(!document.hidden&&!loading)load()},120000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden){getFreshSpot();load()}});
 })();
 
 render();
