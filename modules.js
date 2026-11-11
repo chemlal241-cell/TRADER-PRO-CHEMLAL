@@ -275,11 +275,29 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const adxStrong=Number.isFinite(adxVal)&&adxVal>=20;
   const vwapBull=vwap!==null&&last.c>vwap,vwapBear=vwap!==null&&last.c<vwap;
   const bbStretchBull=!!bb&&last.c<bb.lower,bbStretchBear=!!bb&&last.c>bb.upper;
-  /* Eight SMC factors are primary; EMA, RSI and MACD are three secondary confirmations. */
-  const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",bullSweepShift,ema9>ema21,rsiVal>50,macdVal?.hist>0].filter(Boolean).length;
-  const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",bearSweepShift,ema9<ema21,rsiVal<50,macdVal?.hist<0].filter(Boolean).length;
+  /* Dynamic weighted confluence: SMC is primary; EMA/RSI/MACD are confirmations only. */
+  const trending=adxStrong||hhhl||lhll;
+  const weights=trending
+   ?{structure:20,break:16,liquidity:14,zone:10,fvg:8,sweep:12,value:5,ema:5,rsi:5,macd:5}
+   :{structure:16,break:12,liquidity:16,zone:12,fvg:10,sweep:14,value:10,ema:4,rsi:3,macd:3};
+  const bullFactors=[
+   [hhhl,weights.structure],[bosUp||chochUp,weights.break],[sweepLow,weights.liquidity],
+   [ob==="Potential Bullish OB",weights.zone],[fvg==="Bullish FVG",weights.fvg],
+   [bullSweepShift,weights.sweep],[zone==="DISCOUNT",weights.value],
+   [ema9>ema21,weights.ema],[rsiVal>50,weights.rsi],[macdVal?.hist>0,weights.macd]
+  ];
+  const bearFactors=[
+   [lhll,weights.structure],[bosDown||chochDown,weights.break],[sweepHigh,weights.liquidity],
+   [ob==="Potential Bearish OB",weights.zone],[fvg==="Bearish FVG",weights.fvg],
+   [bearSweepShift,weights.sweep],[zone==="PREMIUM",weights.value],
+   [ema9<ema21,weights.ema],[rsiVal<50,weights.rsi],[macdVal?.hist<0,weights.macd]
+  ];
+  const totalWeight=Object.values(weights).reduce((a,b)=>a+b,0);
+  const bullish=bullFactors.reduce((n,x)=>n+(x[0]?x[1]:0),0);
+  const bearish=bearFactors.reduce((n,x)=>n+(x[0]?x[1]:0),0);
   const direction=bullish>bearish?"BUY BIAS":bearish>bullish?"SELL BIAS":"MIXED";
-  const score=Math.max(bullish,bearish),total=11,confluencePct=score/total*100,rrReady=confluencePct>=85&&Math.abs(bullish-bearish)>=4;
+  const score=Math.max(bullish,bearish),total=totalWeight,confluencePct=score/totalWeight*100;
+  const separation=Math.abs(bullish-bearish);
   const side=bullish>bearish?"BUY":bearish>bullish?"SELL":null;
   const entry=last.c,invalid=side==="BUY"?(priorL?.p??last.l-atrNow):(priorH?.p??last.h+atrNow);
   const risk=side?Math.abs(entry-invalid):0;
@@ -303,20 +321,26 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ["RSI / MACD confirmations","RSI14 "+fmt(rsiVal)+" · MACD histogram "+fmt(macdVal?.hist),"Bullish confirmation "+(rsiVal>50&&macdVal?.hist>0?"yes":"no")+" · bearish confirmation "+(rsiVal<50&&macdVal?.hist<0?"yes":"no")],
    ["Closed-candle trigger",pat,"Pattern must occur at a meaningful SMC zone and be confirmed on candle close"],
    ["Session / event risk","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Verify CPI, NFP and FOMC schedule from a reliable calendar before any setup"]
-
+  ];
   const host=$("advancedRows");host.innerHTML="";
   const table=document.createElement("table");table.className="module-table";
   const body=document.createElement("tbody");
   lines.forEach(a=>{const tr=document.createElement("tr");a.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;tr.append(td)});body.append(tr)});
   table.append(body);host.append(table);
-  $("advancedStatus").textContent="ANALYSIS UPDATED · "+direction+" · confluence "+score+"/"+total+" · "+(adxStrong?"ADX trend strength confirmed":"ADX trend strength weak/unknown")+" (not probability)";
+  $("advancedStatus").textContent="ANALYSIS UPDATED · "+direction+" · weighted confluence "+confluencePct.toFixed(1)+"% · "+(adxStrong?"ADX trend strength confirmed":"ADX trend strength weak/unknown")+" (not probability)";
   const structureTrigger=side==="BUY"?(bullSweepShift||bosUp||srFlipUp):(bearSweepShift||bosDown||srFlipDown);
   const h1Bull=h.ema20>h.ema50,m15Bull=m.ema20>m.ema50&&m.macd?.hist>0&&m.rsi>50;
   const h1Bear=h.ema20<h.ema50,m15Bear=m.ema20<m.ema50&&m.macd?.hist<0&&m.rsi<50;
   const aligned=side==="BUY"?(h1Bull&&m15Bull):(h1Bear&&m15Bear);
-  const candidate=!!(side&&rrReady&&risk>0&&atrNow>0&&structureTrigger&&aligned&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
-  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" ("+confluencePct.toFixed(1)+"%) · 1h/15m aligned · Historical win rate: N/A (no validated strategy backtest yet) · NOT VALIDATED; paper-only.":"WAIT · requires at least 85% confluence (10/11 factors), 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
-  return candidate?{side,entry,sl,tp1,tp2,tp3,score,total,atr:atrNow,time:m.last?.t||last.t}:null;
+  const candleBull=last.c>last.o&&last.c>last.l+(last.h-last.l)*.65;
+  const candleBear=last.c<last.o&&last.c<last.l+(last.h-last.l)*.35;
+  const zoneConfirmed=side==="BUY"
+   ?(zone==="DISCOUNT"||fvgLevel&&fvg==="Bullish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bullish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1])
+   :(zone==="PREMIUM"||fvgLevel&&fvg==="Bearish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bearish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1]);
+  const entryConfirmed=!!(side&&structureTrigger&&zoneConfirmed&&(side==="BUY"?candleBull:candleBear));
+  const candidate=!!(side&&entryConfirmed&&separation>=12&&aligned&&risk>0&&atrNow>0&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" · ENTRY CONFIRMED · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · Dynamic confluence "+confluencePct.toFixed(1)+"% · SMC trigger + zone + closed candle + 1h/15m alignment · Historical win rate: N/A (not backtested).":"WAIT · dynamic confluence "+confluencePct.toFixed(1)+"% · waiting for market-structure break/reclaim, valid SMC zone, directional closed-candle trigger, 1h/15m alignment and clear risk.";
+  return candidate?{side,entry,sl,tp1,tp2,tp3,score:Math.round(score),total:totalWeight,atr:atrNow,time:m.last?.t||last.t}:null;
  }
 
  function showRows(items){
