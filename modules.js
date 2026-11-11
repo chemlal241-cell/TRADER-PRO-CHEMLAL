@@ -104,7 +104,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
 /* Historical OHLC engine: real candles + deterministic indicators; stays WAIT until validated */
 (function(){
  const root=document.querySelector("#overview"),aiChRoot=document.querySelector("#ai-ch");
- if(!root)return;
+ if(!root||!aiChRoot)return;
  const panel=document.createElement("article");
  panel.className="module-card wide";
  panel.style.marginTop="16px";
