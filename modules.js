@@ -1,6 +1,6 @@
 (()=> {
 const css=document.createElement("style");
-css.textContent=".module-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.module-card{background:linear-gradient(160deg,#151a23,#10141b);border:1px solid #29313e;border-radius:17px;padding:18px}.module-card h2{font-size:15px;margin:0 0 15px;color:#f1d18a}.module-card input,.module-card select,.module-card textarea{width:100%;margin:5px 0 12px;border:1px solid #29313e;background:#171d27;color:#fff;border-radius:10px;padding:10px}.module-card label{display:block;color:#93a0b2;font-size:12px}.module-card button{border:0;border-radius:10px;padding:10px 14px;background:linear-gradient(135deg,#f0d18e,#b98731);color:#17120a;font-weight:800}.module-result{margin-top:12px;padding:13px;border:1px solid #69552d;border-radius:12px;color:#f1d18a;background:#201b11}.module-table{width:100%;border-collapse:collapse;font-size:13px}.module-table td,.module-table th{padding:8px;border-bottom:1px solid #29313e;text-align:left}.module-muted{font-size:12px;color:#93a0b2;line-height:1.6}@media(max-width:850px){.module-grid{grid-template-columns:1fr}}";
+css.textContent=".module-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.module-card{background:linear-gradient(160deg,#151a23,#10141b);border:1px solid #29313e;border-radius:17px;padding:18px}.module-card h2{font-size:15px;margin:0 0 15px;color:#f1d18a}.module-card input,.module-card select,.module-card textarea{width:100%;margin:5px 0 12px;border:1px solid #29313e;background:#171d27;color:#fff;border-radius:10px;padding:10px}.module-card label{display:block;color:#93a0b2;font-size:12px}.module-card button{border:0;border-radius:10px;padding:10px 14px;background:linear-gradient(135deg,#f0d18e,#b98731);color:#17120a;font-weight:800}.module-result{margin-top:12px;padding:13px;border:1px solid #69552d;border-radius:12px;color:#f1d18a;background:#201b11}.module-table{width:100%;border-collapse:collapse;font-size:13px}.module-table td,.module-table th{padding:8px;border-bottom:1px solid #29313e;text-align:left}.module-muted{font-size:12px;color:#93a0b2;line-height:1.6}@media(max-width:850px){.module-grid{grid-template-columns:1fr}};#topGoldPrice,#xausPrice,#aiLivePrice{transition:color .18s ease,opacity .18s ease;font-variant-numeric:tabular-nums}";
 document.head.append(css);
 const nav=document.querySelector(".tabs"),defs=[["risklab","🛡 Risk Lab"],["journal","📓 Trade Journal"],["backtest","📈 Backtest Lab"]];
 defs.forEach(([id,label])=>{const b=document.createElement("button");b.className="tab";b.dataset.tab=id;b.textContent=label;nav.append(b)});
@@ -69,7 +69,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    $("xausPrice").textContent="—";const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");if(topPrice)topPrice.textContent="—";if(topState)topState.textContent="● FEED UNAVAILABLE";$("xausState").textContent=stateLabel("unavailable");$("xausMeta").textContent="XAUS connection failed. No price displayed; signal remains WAIT.";
   }
  }
- loadSpot();setInterval(loadSpot,60000);
+ loadSpot(); // The main live quote loop below updates this panel; avoid a second polling loop.
  document.querySelector("#lang")?.addEventListener("change",()=>{loadSpot()});
 })(); 
 
@@ -177,6 +177,15 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp,source:"XAUS"};
    }
    latestSpotQuote=quote;
+   // Keep every visible gold price synchronized to this single quote response.
+   const panelPrice=quote.ok?"$"+Number(quote.price).toFixed(2):"—";
+   const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");
+   const panelSpot=document.querySelector("#xausPrice"),panelState=document.querySelector("#xausState"),panelMeta=document.querySelector("#xausMeta");
+   if(topPrice)topPrice.textContent=panelPrice;
+   if(topState)topState.textContent=quote.ok?"● LIVE · "+(quote.source||"MARKET DATA"):"● NO FRESH PRICE";
+   if(panelSpot)panelSpot.textContent=panelPrice;
+   if(panelState){panelState.textContent=quote.ok?(quote.source||"LIVE")+" · LIVE":"UNAVAILABLE";panelState.style.color=quote.ok?"#35c98a":"#e59b45";}
+   if(panelMeta)panelMeta.textContent=quote.ok?(quote.source||"Market")+" · "+(quote.symbol||"XAUUSD")+(quote.bid?" · Bid "+Number(quote.bid).toFixed(2)+" · Ask "+Number(quote.ask).toFixed(2):"")+" · "+Math.round(quote.age||0)+"s ago":"No fresh quote · WAIT";
    const priceEl=root.querySelector("#aiLivePrice"),ageEl=root.querySelector("#aiPriceAge"),moveEl=root.querySelector("#aiPriceMove");
    if(priceEl)priceEl.textContent=quote.ok?"$"+quote.price.toFixed(2):"Unavailable";
    if(ageEl)ageEl.textContent=quote.ok?quote.source+" · "+Math.round(quote.age)+"s"+(quote.bid?" · Bid "+quote.bid.toFixed(2)+" / Ask "+quote.ask.toFixed(2):""):"No fresh source quote";
