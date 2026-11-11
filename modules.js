@@ -28,7 +28,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const card=document.createElement("article");
  card.className="module-card wide";
  card.style.marginBottom="16px";
- card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · XM MT5 LIVE CHART</h2><span id="xmChartBadge" style="color:#e5a84b;font-weight:700">● WAITING FOR LIVE TICKS</span></div><div id="xmChartWrap" style="margin:12px 0;border:1px solid #303640;border-radius:12px;overflow:hidden;background:#0b1117;position:relative"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #27313d"><strong id="xmChartPrice" style="font-size:20px;color:#f1d18a">—</strong><span id="xmChartState" style="font-size:12px;color:#e5a84b">WAITING FOR XM MT5</span></div><canvas id="xmLiveChart" aria-label="XAUUSD candlestick chart updated by XM MT5 live prices" style="display:block;width:100%;height:420px"></canvas><div id="xmChartFoot" style="padding:8px 14px;border-top:1px solid #27313d;color:#9aa8b8;font-size:11px">Loading 5-minute historical candles…</div></div><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong style="color:#f1d18a">XAUS reference quote for signal engine</strong><span id="xausState" class="module-muted">Connecting…</span></div><div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;margin:8px 0"><strong id="xausPrice" style="font-size:clamp(24px,4vw,34px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for reference quote…</div><p class="module-muted" style="margin-bottom:0">The chart uses historical 5-minute reference candles; its live candle and current-price line update from XM MT5 when the bridge is connected. Historical and broker prices can differ.</p>';
+ card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · REFERENCE CHART</h2><span id="xmChartBadge" style="color:#e5a84b;font-weight:700">● INDEPENDENT CHART</span></div><div id="xmChartWrap" style="margin:12px 0;border:1px solid #303640;border-radius:12px;overflow:hidden;background:#0b1117;position:relative"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #27313d"><strong id="xmChartPrice" style="font-size:20px;color:#f1d18a">—</strong><span id="xmChartState" style="font-size:12px;color:#e5a84b">REFERENCE DATA</span></div><canvas id="xmLiveChart" aria-label="XAUUSD historical reference candlestick chart" style="display:block;width:100%;height:420px"></canvas><div id="xmChartFoot" style="padding:8px 14px;border-top:1px solid #27313d;color:#9aa8b8;font-size:11px">Loading independent 5-minute reference candles…</div></div><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong style="color:#f1d18a">XAUS reference quote for signal engine</strong><span id="xausState" class="module-muted">Connecting…</span></div><div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;margin:8px 0"><strong id="xausPrice" style="font-size:clamp(24px,4vw,34px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for reference quote…</div><p class="module-muted" style="margin-bottom:0">The chart is independent from the live price panels. Gold prices above continue updating separately.</p>';
  overview.insertBefore(card,overview.firstChild);
  const $=id=>card.querySelector("#"+id);
  const fmt=n=>Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -177,7 +177,6 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     quote={ok,price:Number(data.spot_usd_oz),age,asOf:stamp,source:"XAUS"};
    }
    latestSpotQuote=quote;
-   window.dispatchEvent(new CustomEvent("chemlal:spotquote",{detail:quote}));
    // Keep every visible gold price synchronized to this single quote response.
    const panelPrice=quote.ok?"$"+Number(quote.price).toFixed(2):"—";
    const topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");
@@ -687,6 +686,6 @@ render();
  }
  if(window.ResizeObserver)new ResizeObserver(draw).observe(wrap);
  window.addEventListener("resize",draw);
- loadHistory();window.addEventListener("chemlal:spotquote",onQuote);setInterval(loadHistory,300000);
+ loadHistory();setInterval(loadHistory,300000);
  document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
 })();
