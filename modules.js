@@ -63,38 +63,33 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  document.querySelector("#lang")?.addEventListener("change",()=>{loadSpot()});
 })(); 
 
-/* Strategy Workbench — manual confluence and discipline checklist; never fabricates live signals */
+/* SMC Workbench — primary methodology; RSI/MACD/EMA are confirmation factors only */
 (function(){
- const root=document.querySelector("#strategy");
- if(!root)return;
- const card=document.createElement("article");
- card.className="card wide";
- card.innerHTML='<h2>Multi-Strategy Workbench · XAU/USD</h2><p class="notice">Record what you actually see on your chart. This tool scores checklist confluence only; it does not read candles or generate a live BUY/SELL signal.</p><div class="module-grid" style="margin-top:12px">'+
- '<div class="module-card"><h2>Technical confluence</h2>'+
- '<label>Higher-timeframe trend</label><select id="swTrend"><option value="0">Not checked</option><option value="2">Bullish alignment</option><option value="2">Bearish alignment</option><option value="0">Sideways / mixed</option></select>'+
- '<label>Market structure</label><select id="swStructure"><option value="0">Not checked</option><option value="2">BOS confirmed</option><option value="2">CHOCH confirmed</option><option value="0">No clear structure</option></select>'+
- '<label>Key zone</label><select id="swZone"><option value="0">Not checked</option><option value="2">Support / demand reaction</option><option value="2">Resistance / supply reaction</option><option value="2">FVG / order-block confluence</option><option value="0">No clear zone</option></select>'+
- '<label>Entry confirmation</label><select id="swEntry"><option value="0">Not checked</option><option value="2">Engulfing / pin bar confirmed</option><option value="2">Breakout and retest confirmed</option><option value="2">Liquidity sweep and reclaim</option><option value="0">No confirmation</option></select>'+
- '<label>Momentum</label><select id="swMomentum"><option value="0">Not checked</option><option value="1">RSI / MACD supports setup</option><option value="0">Divergent or conflicting</option></select>'+
- '<label>Volatility and news</label><select id="swRisk"><option value="0">Not checked</option><option value="1">No major event / volatility risk</option><option value="0">Major event or abnormal volatility</option></select></div>'+
- '<div class="module-card"><h2>Psychology & execution</h2>'+
- '<label>Emotional state</label><select id="swEmotion"><option value="0">Not checked</option><option value="1">Calm and patient</option><option value="0">Fear, FOMO, anger or revenge</option></select>'+
- '<label>Trading discipline</label><select id="swDiscipline"><option value="0">Not checked</option><option value="1">Following written plan</option><option value="0">Outside the plan</option></select>'+
- '<label>Risk plan</label><select id="swRiskPlan"><option value="0">Not checked</option><option value="1">Stop and position risk defined</option><option value="0">Stop / size not verified</option></select>'+
- '<label>Reward-to-risk</label><select id="swRR"><option value="0">Not checked</option><option value="1">At least 1:2</option><option value="0">Below 1:2 / unclear</option></select>'+
- '<label>Market session</label><select id="swSession"><option value="0">Not checked</option><option value="1">Liquid session with clear movement</option><option value="0">Quiet / uncertain conditions</option></select>'+
- '<div id="swResult" class="module-result" aria-live="polite">Complete the checklist, then calculate confluence.</div><button id="swCalc" style="margin-top:10px">Calculate checklist score</button><p class="module-muted">Maximum 15 points. A high score is not proof of profitability; verify every setup with historical and forward testing.</p></div></div>';
+ const root=document.querySelector("#strategy");if(!root)return;
+ const card=document.createElement("article");card.className="card wide";
+ card.innerHTML='<h2>SMC Workbench · XAU/USD</h2><p class="notice">Primary method: Smart Money Concepts. RSI, MACD and EMA are secondary confirmations, never standalone strategies.</p><div class="module-grid" style="margin-top:12px">'+
+ '<div class="module-card"><h2>SMC setup</h2>'+
+ '<label>Market structure</label><select id="smcStructure"><option value="0">Not confirmed</option><option value="1">Bullish BOS / CHoCH</option><option value="-1">Bearish BOS / CHoCH</option></select>'+
+ '<label>Liquidity event</label><select id="smcLiquidity"><option value="0">Not confirmed</option><option value="1">Sell-side sweep + reclaim</option><option value="-1">Buy-side sweep + rejection</option></select>'+
+ '<label>Institutional zone</label><select id="smcZone"><option value="0">Not confirmed</option><option value="1">Bullish OB / demand / FVG</option><option value="-1">Bearish OB / supply / FVG</option></select>'+
+ '<label>Premium / Discount</label><select id="smcValue"><option value="0">Not checked</option><option value="1">Discount for long</option><option value="-1">Premium for short</option></select>'+
+ '<label>Closed-candle entry trigger</label><select id="smcTrigger"><option value="0">Not confirmed</option><option value="1">Bullish rejection / reclaim</option><option value="-1">Bearish rejection / reclaim</option></select></div>'+
+ '<div class="module-card"><h2>Secondary confirmations</h2>'+
+ '<label>EMA alignment</label><select id="smcEma"><option value="0">Not checked</option><option value="1">Bullish EMA alignment</option><option value="-1">Bearish EMA alignment</option></select>'+
+ '<label>RSI confirmation</label><select id="smcRsi"><option value="0">Not checked</option><option value="1">Bullish momentum</option><option value="-1">Bearish momentum</option></select>'+
+ '<label>MACD confirmation</label><select id="smcMacd"><option value="0">Not checked</option><option value="1">Bullish momentum</option><option value="-1">Bearish momentum</option></select>'+
+ '<div id="smcManualResult" class="module-result">Manual checklist only; it does not create a live order.</div><button id="smcManualCalc" style="margin-top:10px">Evaluate SMC checklist</button>'+
+ '<p class="module-muted">Use 85% as confluence, not win probability. A live signal still requires fresh validated OHLC, a valid price, structure and risk checks.</p></div></div>';
  root.append(card);
- card.querySelector("#swCalc").addEventListener("click",()=>{
-  const ids=["swTrend","swStructure","swZone","swEntry","swMomentum","swRisk","swEmotion","swDiscipline","swRiskPlan","swRR","swSession"];
-  const score=ids.reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
-  const technical=ids.slice(0,6).reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
-  const psychology=ids.slice(6).reduce((n,id)=>n+Number(card.querySelector("#"+id).value||0),0);
-  const blocked=["swRisk","swEmotion","swDiscipline","swRiskPlan"].some(id=>card.querySelector("#"+id).value==="0");
-  const out=card.querySelector("#swResult");
-  out.textContent="Checklist: "+score+"/15 · Technical: "+technical+"/10 · Psychology & execution: "+psychology+"/5. "+(blocked?"WAIT — one or more safety/discipline checks are incomplete or adverse.":"Checklist recorded. This is not a live signal; confirm candles, levels, spread and backtest before any decision.");
+ card.querySelector("#smcManualCalc").addEventListener("click",()=>{
+  const ids=["smcStructure","smcLiquidity","smcZone","smcValue","smcTrigger"],confirm=["smcEma","smcRsi","smcMacd"];
+  const vals=ids.map(id=>Number(card.querySelector("#"+id).value)),cv=confirm.map(id=>Number(card.querySelector("#"+id).value));
+  const long=vals.filter(x=>x===1).length+cv.filter(x=>x===1).length,short=vals.filter(x=>x===-1).length+cv.filter(x=>x===-1).length,total=8,score=Math.max(long,short),pct=score/total*100;
+  const structure=Number(card.querySelector("#smcStructure").value),trigger=Number(card.querySelector("#smcTrigger").value);
+  const valid=score>=Math.ceil(total*.85)&&Math.abs(long-short)>=3&&((long>short&&structure===1&&trigger===1)||(short>long&&structure===-1&&trigger===-1));
+  card.querySelector("#smcManualResult").textContent=(valid?(long>short?"SMC BUY SETUP CANDIDATE":"SMC SELL SETUP CANDIDATE"):"WAIT")+" · confluence "+score+"/"+total+" ("+pct.toFixed(1)+"%) · RSI/MACD/EMA confirmations included · not a live price signal.";
  });
-})();
+})(); 
 
 /* Historical OHLC engine: real candles + deterministic indicators; stays WAIT until validated */
 (function(){
@@ -110,7 +105,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  '<div class="module-card"><h2>Signal gate</h2><div id="candleBias" class="module-result">WAIT · candle data not checked</div><div id="candleReason" class="module-muted" style="margin-top:10px">No BUY/SELL signal is enabled until a separate out-of-sample backtest passes.</div><div id="candleQuality" class="module-muted" style="margin-top:10px"></div></div></div>';
  root.append(panel);
  const $=id=>panel.querySelector("#"+id);
- panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>Smart Money Concepts · Advanced Strategy Matrix</h2><p class="module-muted">Computed from the same validated closed OHLC candles. These are rule-based observations, not guaranteed setups or a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology. RSI, MACD and EMA are secondary confirmations only. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
  function updateLivePanel(signal,description,biasLabel,plan){
   const strong=root.querySelector(".card .signal strong");
   const desc=root.querySelector('.card .signal [data-i="waitDesc"]');
@@ -280,10 +275,11 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const adxStrong=Number.isFinite(adxVal)&&adxVal>=20;
   const vwapBull=vwap!==null&&last.c>vwap,vwapBear=vwap!==null&&last.c<vwap;
   const bbStretchBull=!!bb&&last.c<bb.lower,bbStretchBear=!!bb&&last.c>bb.upper;
-  const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",ema9>ema21,rsiVal>50,macdVal?.hist>0,bullDiv,bullSweepShift,vwapBull,adxStrong].filter(Boolean).length;
-  const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",ema9<ema21,rsiVal<50,macdVal?.hist<0,bearDiv,bearSweepShift,vwapBear,adxStrong].filter(Boolean).length;
+  /* Eight SMC factors are primary; EMA, RSI and MACD are three secondary confirmations. */
+  const bullish=[hhhl,bosUp,chochUp,sweepLow,zone==="DISCOUNT",fvg==="Bullish FVG",ob==="Potential Bullish OB",bullSweepShift,ema9>ema21,rsiVal>50,macdVal?.hist>0].filter(Boolean).length;
+  const bearish=[lhll,bosDown,chochDown,sweepHigh,zone==="PREMIUM",fvg==="Bearish FVG",ob==="Potential Bearish OB",bearSweepShift,ema9<ema21,rsiVal<50,macdVal?.hist<0].filter(Boolean).length;
   const direction=bullish>bearish?"BUY BIAS":bearish>bullish?"SELL BIAS":"MIXED";
-  const score=Math.max(bullish,bearish),total=14,confluencePct=score/total*100,rrReady=confluencePct>=85&&Math.abs(bullish-bearish)>=4;
+  const score=Math.max(bullish,bearish),total=11,confluencePct=score/total*100,rrReady=confluencePct>=85&&Math.abs(bullish-bearish)>=4;
   const side=bullish>bearish?"BUY":bearish>bullish?"SELL":null;
   const entry=last.c,invalid=side==="BUY"?(priorL?.p??last.l-atrNow):(priorH?.p??last.h+atrNow);
   const risk=side?Math.abs(entry-invalid):0;
@@ -323,7 +319,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const h1Bear=h.ema20<h.ema50,m15Bear=m.ema20<m.ema50&&m.macd?.hist<0&&m.rsi<50;
   const aligned=side==="BUY"?(h1Bull&&m15Bull):(h1Bear&&m15Bear);
   const candidate=!!(side&&rrReady&&risk>0&&atrNow>0&&structureTrigger&&aligned&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
-  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" ("+confluencePct.toFixed(1)+"%) · 1h/15m aligned · Historical win rate: N/A (no validated strategy backtest yet) · NOT VALIDATED; paper-only.":"WAIT · requires at least 85% confluence (12/14 factors), 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" SETUP · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · confluence "+score+"/"+total+" ("+confluencePct.toFixed(1)+"%) · 1h/15m aligned · Historical win rate: N/A (no validated strategy backtest yet) · NOT VALIDATED; paper-only.":"WAIT · requires at least 85% confluence (10/11 factors), 4-point directional separation, confirmed structure, 1h/15m alignment and valid risk levels.";
   return candidate?{side,entry,sl,tp1,tp2,tp3,score,total,atr:atrNow,time:m.last?.t||last.t}:null;
  }
 
@@ -458,65 +454,27 @@ render();
 })(); 
 
 
-/* Strategy Library catalogue — structured templates for XAUUSD; educational, not trade calls */
+/* SMC-only Strategy Library — indicators retained only as confirmations */
 (function(){
- const root=document.querySelector("#strategy");
- if(!root||root.dataset.catalogReady)return;
- root.dataset.catalogReady="1";
+ const root=document.querySelector("#strategy");if(!root||root.dataset.catalogReady)return;root.dataset.catalogReady="1";
  const intro=root.querySelector(":scope > .card");
- if(intro)intro.innerHTML='<h2>Strategy library · XAU/USD</h2><p class="notice">19 structured strategy templates across Smart Money Concepts, trend & momentum, price action, and market context. Each template explains its method, confirmation and invalidation. Select a category to explore.</p><div class="module-muted">Important: indicator observations are calculated only when validated candles are available; chart formations and event context may require manual confirmation. No template independently authorizes a live BUY/SELL.</div>';
- const panel=document.createElement("article");
- panel.className="module-card wide";
- panel.style.marginTop="14px";
- panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Strategy Library · 19 setups</h2><span class="module-muted">XAU/USD · educational playbook</span></div>'+
- '<div id="slFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0"></div>'+
- '<div id="slCount" class="module-muted" style="margin-bottom:10px"></div>'+
- '<div id="slCards" class="module-grid"></div>'+
- '<p class="module-muted" style="margin:14px 0 0">Risk rule: define invalidation and position size before entry. Avoid trading during unverified high-impact events. Backtest with spread/slippage and forward-test on demo before considering any strategy.</p>';
+ if(intro)intro.innerHTML='<h2>SMC Strategy Library · XAU/USD</h2><p class="notice">The former mixed strategy catalogue is replaced by a Smart Money Concepts playbook. EMA, RSI and MACD are confirmation filters only.</p>';
+ const panel=document.createElement("article");panel.className="module-card wide";panel.style.marginTop="14px";
+ panel.innerHTML='<h2>Smart Money Concepts · Core setups</h2><div id="smcLibrary" class="module-grid"></div><p class="module-muted" style="margin-top:12px">Educational rule definitions. A detected zone or pattern is not proof of institutional activity and does not independently authorize an order.</p>';
  root.prepend(panel);
- const strategies=[
-  {cat:"smc",name:"Market Structure · BOS / CHoCH",status:"Candle engine",method:"Track confirmed swing highs/lows; BOS is a break in the prevailing swing, while CHoCH is an early structural shift.",confirm:"Wait for a closed candle beyond the relevant swing, then assess retest and higher-timeframe alignment.",invalid:"A close back through the broken structure or a fresh opposing swing invalidates the idea.",tf:"15m / 1h / 4h"},
-  {cat:"smc",name:"Liquidity Sweep & Reclaim",status:"Candle engine · candidate",method:"Mark equal highs/lows and prior session extremes; watch for a wick through liquidity followed by a close back inside.",confirm:"Require reclaim plus a subsequent CHoCH/BOS and clear risk location; sweep alone is not an entry.",invalid:"Price accepts beyond the swept level or fails to reclaim it.",tf:"5m / 15m with 1h context"},
-  {cat:"smc",name:"Order Blocks · Supply & Demand",status:"Candle engine · potential zones",method:"Identify the last opposing candle before a strong displacement that breaks a meaningful level; treat the candle range as a potential zone.",confirm:"Look for return to zone, rejection, structure shift and acceptable reward-to-risk.",invalid:"A decisive close through the zone; zones are candidates, not guaranteed institutional orders.",tf:"15m / 1h / 4h"},
-  {cat:"smc",name:"Fair Value Gap · 3-candle imbalance",status:"Candle engine",method:"Detect a three-candle gap where candle 1 high/low does not overlap candle 3 low/high.",confirm:"Prefer a retrace into the gap aligned with trend, structure and a rejection trigger.",invalid:"Full close-through or opposing structure break; not every gap must fill.",tf:"5m / 15m / 1h"},
-  {cat:"smc",name:"Premium / Discount",status:"Candle engine",method:"Use the midpoint of a defined dealing range; below midpoint is discount, above midpoint is premium.",confirm:"Seek longs in discount or shorts in premium only with structure and a valid trigger.",invalid:"The dealing range changes after a new confirmed swing; never use midpoint alone.",tf:"15m / 1h / 4h"},
-  {cat:"smc",name:"Fibonacci OTE & Extensions",status:"Candle engine · swing dependent",method:"Anchor Fibonacci to a confirmed chronological swing leg; monitor 0.50, 0.618, 0.705 and 0.786 retracements, plus 1.272/1.618 extensions.",confirm:"Require confluence with structure, OB/FVG or liquidity and a candle trigger inside the zone.",invalid:"The swing anchor is broken or the assumed impulse structure fails.",tf:"15m / 1h / 4h"},
-  {cat:"smc",name:"S/R Flip & Round Numbers",status:"Candle engine · candidate",method:"Track prior support/resistance after a break and retest; note nearby $50 round-number levels as attention zones.",confirm:"Require a close through the level and a successful retest/rejection; combine with trend context.",invalid:"Price reclaims the old side and closes back through the level.",tf:"5m / 15m / 1h"},
-  {cat:"trend",name:"EMA Trend Stack · 9 / 21 / 50 / 200",status:"Candle engine",method:"Use EMA alignment and slope to classify trend and pullback context; 200 EMA is a broad regime reference.",confirm:"Look for aligned stack, pullback toward 9/21 or 50, then a closed-candle continuation trigger.",invalid:"EMA stack collapses or price closes through the structural swing against the position.",tf:"15m / 1h / 4h"},
-  {cat:"trend",name:"SuperTrend + ADX Filter",status:"Candle engine · approximation",method:"Use SuperTrend direction as a trend-following guide and ADX as trend-strength context; ADX does not indicate direction.",confirm:"Trade only with directional agreement and adequate ADX strength, then wait for a pullback/continuation trigger.",invalid:"SuperTrend flips or price invalidates the latest swing; avoid low-ADX chop.",tf:"15m / 1h"},
-  {cat:"trend",name:"Ichimoku Cloud",status:"Candle engine",method:"Compare price with Kumo and Tenkan/Kijun alignment to assess trend, balance and dynamic support/resistance.",confirm:"Prefer price above cloud with Tenkan above Kijun for bullish continuation, or inverse for bearish; wait for close.",invalid:"Price returns into/through cloud and Tenkan/Kijun alignment reverses.",tf:"1h / 4h"},
-  {cat:"trend",name:"RSI + MACD + Stochastic",status:"Candle engine",method:"Use RSI for momentum regime, MACD histogram/line for momentum change, and Stochastic for timing in ranges.",confirm:"Require agreement with structure; use oscillator extremes only as context, never as a standalone reversal signal.",invalid:"Momentum diverges against the setup or structure breaks.",tf:"5m / 15m / 1h"},
-  {cat:"trend",name:"Bollinger Bands · Volatility",status:"Candle engine",method:"Use band expansion/contraction and closes outside bands to assess volatility; outer-band touches can persist in strong trends.",confirm:"For mean reversion, require rejection and range context; for breakout, require expansion and retest.",invalid:"Band-walk/strong trend invalidates fading an outer-band touch; breakout failure returns inside range.",tf:"5m / 15m / 1h"},
-  {cat:"trend",name:"VWAP + Volume Context",status:"Conditional · volume required",method:"Compare price with session/rolling VWAP only when source volume is valid and meaningful.",confirm:"Use VWAP reclaim/rejection with structure and genuine volume confirmation.",invalid:"Price accepts on the opposite side; if volume is missing or synthetic, do not use VWAP.",tf:"5m / 15m"},
-  {cat:"price",name:"Candlestick Price Action",status:"Candle engine · candidates",method:"Recognize engulfing, pin bar/hammer, shooting star, doji, marubozu and multi-candle reversal candidates at meaningful levels.",confirm:"Pattern must close, occur at a pre-marked zone and have follow-through/structure confirmation.",invalid:"Pattern extreme is broken or next candles show no follow-through.",tf:"5m / 15m / 1h"},
-  {cat:"price",name:"RSI Divergence",status:"Candle engine · candidate",method:"Compare confirmed price swing highs/lows with RSI swings for regular bullish/bearish divergence candidates.",confirm:"Wait for a structure shift or break of a local trigger; divergence alone can persist for a long time.",invalid:"Price makes a fresh continuation extreme and momentum resumes with trend.",tf:"15m / 1h"},
-  {cat:"price",name:"Trendlines & Channels",status:"Manual chart confirmation",method:"Connect at least two meaningful swing points and treat a third touch as a possible test, not proof.",confirm:"Require a closed break and retest or a clear rejection at channel boundary.",invalid:"Line is redrawn by new structure or price accepts back inside after breakout.",tf:"15m / 1h / 4h"},
-  {cat:"price",name:"Chart Patterns · Double Top/Bottom, H&S, Triangles, Wedges, Flags",status:"Visual confirmation required",method:"Identify pattern geometry and neckline/boundary from the actual chart; the engine does not certify these formations automatically.",confirm:"Wait for neckline/boundary close, retest and volume/volatility context where available.",invalid:"Pattern boundary fails or price breaks the opposite side.",tf:"15m / 1h / 4h"},
-  {cat:"context",name:"London & New York Sessions",status:"Session clock",method:"Use London and New York session times and overlap as liquidity/context windows, accounting for daylight-saving changes.",confirm:"Trade only when a separate technical setup is present; session open is not a signal.",invalid:"Liquidity is thin, spread widens, or market is range-bound.",tf:"Intraday"},
-  {cat:"context",name:"News · Economic Calendar · DXY Filter",status:"Partially connected / manual",method:"Investing.com headlines are shown in the News panel; the live economic calendar event filter and DXY live series are not connected.",confirm:"Manually verify CPI, NFP, FOMC and high-impact USD events from a trusted calendar; stand aside around unpredictable releases.",invalid:"Event risk is unknown or feed is stale; treat the filter as unavailable.",tf:"Before every session"}
+ const items=[
+ ["Market Structure · HH/HL & LH/LL","Classify confirmed swing sequences. Bullish structure uses higher highs/higher lows; bearish structure uses lower highs/lower lows.","Require confirmed pivots and a closed-candle break or reaction; avoid judging an unfinished candle."],
+ ["BOS & CHoCH","BOS is a close beyond a meaningful swing; CHoCH is a possible shift against the prior structure.","Wait for close, then retest/reclaim where possible. A wick alone is not confirmation."],
+ ["Liquidity · EQH/EQL & Sweep","Mark equal highs/lows and prior session extremes. Watch for a sweep and reclaim/rejection.","Require close back through the swept level plus structure confirmation; sweep alone is not an entry."],
+ ["Order Blocks","Potential last opposing candle before displacement that breaks a meaningful swing.","Treat as a candidate zone; wait for revisit, rejection and risk-defined entry."],
+ ["Supply & Demand","Map origin zones of strong displacement and distinguish fresh from repeatedly tested zones.","Require a reaction and structure confirmation; invalidate on decisive acceptance through zone."],
+ ["Fair Value Gap / Imbalance","Identify three-candle non-overlap gaps and monitor retracement into the imbalance.","Prefer confluence with structure, liquidity and a closed-candle trigger; not every gap fills."],
+ ["Premium / Discount & OTE","Use a confirmed dealing range midpoint and retracement levels such as 0.50, 0.618, 0.705 and 0.786.","Long ideas are preferred in discount and short ideas in premium, only with structure and trigger."],
+ ["Entry models · Reclaim / Retest","Use displacement, break-and-retest, sweep-and-reclaim, or limit entry at a validated zone.","Choose market, stop or limit order only when its trigger and invalidation are explicit."]
  ];
- const cats=[["all","All strategies"],["smc","Smart Money Concepts"],["trend","Trend & indicators"],["price","Price action"],["context","Sessions & news"]];
- const filters=panel.querySelector("#slFilters"),cards=panel.querySelector("#slCards"),count=panel.querySelector("#slCount");
- let active="all";
- function render(){
-  filters.innerHTML="";
-  cats.forEach(([id,label])=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.style.background=active===id?"#d8ad53":"#171d27";b.style.color=active===id?"#17120a":"#eef1f5";b.style.border=active===id?"1px solid #f1d18a":"1px solid #29313e";b.addEventListener("click",()=>{active=id;render()});filters.append(b)});
-  const shown=strategies.filter(x=>active==="all"||x.cat===active);
-  count.textContent=shown.length+" strategy templates · statuses distinguish calculated observations from manual checks and unavailable data.";
-  cards.innerHTML="";
-  shown.forEach(x=>{
-   const article=document.createElement("article");article.className="module-card";
-   const h=document.createElement("h2");h.textContent=x.name;h.style.marginBottom="8px";
-   const badge=document.createElement("div");badge.className="module-muted";badge.textContent="STATUS · "+x.status;badge.style.color="#d8ad53";badge.style.marginBottom="10px";
-   article.append(h,badge);
-   [["Method",x.method],["Confirmation",x.confirm],["Invalidation",x.invalid],["Typical timeframes",x.tf]].forEach(([label,value])=>{
-    const p=document.createElement("p");p.className="module-muted";p.style.margin="7px 0";const strong=document.createElement("b");strong.textContent=label+": ";strong.style.color="#eef1f5";p.append(strong,document.createTextNode(value));article.append(p);
-   });
-   cards.append(article);
-  });
- }
- render();
-})();
+ const host=panel.querySelector("#smcLibrary");
+ items.forEach(([name,method,confirm])=>{const card=document.createElement("article");card.className="module-card";const h=document.createElement("h2");h.textContent=name;const p=document.createElement("p");p.className="module-muted";p.textContent=method;const q=document.createElement("p");q.className="module-muted";q.textContent="Confirmation: "+confirm;card.append(h,p,q);host.append(card)});
+})(); 
 
 
 /* Forex session clock — all displayed session hours converted to Morocco time */
