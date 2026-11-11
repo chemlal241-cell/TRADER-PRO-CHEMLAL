@@ -35,6 +35,16 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  function stateLabel(status,age){const lang=document.querySelector("#lang")?.value||"en";const words={en:{fresh:"LIVE · FRESH",stale:"STALE · LAST REAL QUOTE",unavailable:"UNAVAILABLE · NO PRICE"},ar:{fresh:"مباشر · حديث",stale:"قديم · آخر سعر حقيقي",unavailable:"غير متاح · لا يوجد سعر"},fr:{fresh:"DIRECT · À JOUR",stale:"ANCIEN · DERNIER COURS RÉEL",unavailable:"INDISPONIBLE"},es:{fresh:"EN VIVO · ACTUALIZADO",stale:"ANTIGUO · ÚLTIMO PRECIO REAL",unavailable:"NO DISPONIBLE"}};return (words[lang]||words.en)[status]||status.toUpperCase()}
  async function loadSpot(){
   try{
+   try{
+    const xr=await fetch("/api/xm-quote",{cache:"no-store"}),xq=await xr.json();
+    if(xr.ok&&xq.ok&&Number.isFinite(Number(xq.price))&&Number(xq.age)<=20){
+     const p="$"+fmt(xq.price),topPrice=document.querySelector("#topGoldPrice"),topState=document.querySelector("#topGoldState");
+     $("xausPrice").textContent=p;if(topPrice)topPrice.textContent=p;if(topState)topState.textContent="● LIVE · XM MT5";
+     $("xausState").textContent="XM MT5 · LIVE";$("xausState").style.color="#35c98a";
+     $("xausMeta").textContent="XM "+xq.symbol+" · Bid "+fmt(xq.bid)+" · Ask "+fmt(xq.ask)+" · received "+Math.round(xq.age)+"s ago";
+     return;
+    }
+   }catch(_){}
    const res=await fetch("https://xaus.com/api/v1/spot?compact=1",{cache:"no-store"});
    const data=await res.json();
    const generated=Date.parse(data.price_as_of||data.data_state?.as_of||data.updated_at||"");
