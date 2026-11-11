@@ -28,7 +28,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  const card=document.createElement("article");
  card.className="module-card wide";
  card.style.marginBottom="16px";
- card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · TRADINGVIEW LIVE CHART</h2><span style="color:#35c98a;font-weight:700">● STREAMING CHART</span></div><div style="margin:12px 0;border:1px solid #303640;border-radius:12px;overflow:hidden;background:#0b1117"><iframe title="TradingView XAUUSD live chart" src="https://www.tradingview.com/widgetembed/?frameElementId=tradingview_xau_live&symbol=OANDA%3AXAUUSD&interval=1&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=0b1117&theme=dark&style=1&timezone=Africa%2FCasablanca&withdateranges=1&hideideas=1&locale=en" style="display:block;width:100%;height:480px;border:0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowtransparency="true"></iframe></div><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong style="color:#f1d18a">XAUS reference quote for signal engine</strong><span id="xausState" class="module-muted">Connecting…</span></div><div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;margin:8px 0"><strong id="xausPrice" style="font-size:clamp(24px,4vw,34px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for reference quote…</div><p class="module-muted" style="margin-bottom:0">TradingView chart stream and XAUS signal reference are separate feeds; prices may differ slightly. No broker execution price is implied.</p>';
+ card.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">XAU/USD · XM MT5 LIVE CHART</h2><span id="xmChartBadge" style="color:#e5a84b;font-weight:700">● WAITING FOR LIVE TICKS</span></div><div id="xmChartWrap" style="margin:12px 0;border:1px solid #303640;border-radius:12px;overflow:hidden;background:#0b1117;position:relative"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #27313d"><strong id="xmChartPrice" style="font-size:20px;color:#f1d18a">—</strong><span id="xmChartState" style="font-size:12px;color:#e5a84b">WAITING FOR XM MT5</span></div><canvas id="xmLiveChart" aria-label="XAUUSD candlestick chart updated by XM MT5 live prices" style="display:block;width:100%;height:420px"></canvas><div id="xmChartFoot" style="padding:8px 14px;border-top:1px solid #27313d;color:#9aa8b8;font-size:11px">Loading 5-minute historical candles…</div></div><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong style="color:#f1d18a">XAUS reference quote for signal engine</strong><span id="xausState" class="module-muted">Connecting…</span></div><div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;margin:8px 0"><strong id="xausPrice" style="font-size:clamp(24px,4vw,34px);color:#f1d18a">—</strong><span id="xausUnit" class="module-muted">USD / troy ounce</span></div><div class="module-muted" id="xausMeta">Waiting for reference quote…</div><p class="module-muted" style="margin-bottom:0">The chart uses historical 5-minute reference candles; its live candle and current-price line update from XM MT5 when the bridge is connected. Historical and broker prices can differ.</p>';
  overview.insertBefore(card,overview.firstChild);
  const $=id=>card.querySelector("#"+id);
  const fmt=n=>Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -601,4 +601,98 @@ render();
   });
  }
  renderChips();setInterval(renderChips,15000);
+})();
+
+
+/* XM MT5 live-linked candlestick chart: historical reference candles + XM live ticks */
+(function(){
+ const canvas=document.getElementById("xmLiveChart"),wrap=document.getElementById("xmChartWrap");
+ if(!canvas||!wrap)return;
+ const ctx=canvas.getContext("2d"),priceEl=document.getElementById("xmChartPrice"),stateEl=document.getElementById("xmChartState"),footEl=document.getElementById("xmChartFoot"),badge=document.getElementById("xmChartBadge");
+ let candles=[],live=null,lastPrice=null,loading=false,lastDraw=0;
+ const finite=n=>Number.isFinite(n);
+ function normalize(raw){
+  const rows=Array.isArray(raw)?raw:(raw?.points||raw?.candles||raw?.data||[]);
+  return rows.map(x=>{
+   const v=x.t??x.time??x.timestamp??"",n=Number(v),t=finite(n)?(n<1e12?n*1000:n):Date.parse(v);
+   return {time:Math.floor(t/1000),open:Number(x.o??x.open),high:Number(x.h??x.high),low:Number(x.l??x.low),close:Number(x.c??x.close)};
+  }).filter(x=>finite(x.time)&&[x.open,x.high,x.low,x.close].every(finite)&&x.low>0&&x.high>=Math.max(x.open,x.close)&&x.low<=Math.min(x.open,x.close))
+   .sort((a,b)=>a.time-b.time).filter((x,i,a)=>!i||x.time!==a[i-1].time);
+ }
+ async function loadHistory(){
+  if(loading)return;loading=true;
+  try{
+   const r=await fetch("https://xaus.com/api/v1/chart?symbol=xau&range=5d&interval=5m",{cache:"no-store"});
+   if(!r.ok)throw new Error("HTTP "+r.status);
+   const j=await r.json(),rows=normalize(j);
+   if(rows.length<20)throw new Error("Not enough candles");
+   candles=rows.slice(-180);draw();
+   footEl.textContent="5m historical candles loaded · Waiting for XM MT5 ticks to update the live candle.";
+  }catch(e){stateEl.textContent="HISTORICAL DATA UNAVAILABLE";footEl.textContent="Could not load historical candles. Live price will still be shown when XM MT5 is connected."}
+  finally{loading=false}
+ }
+ function applyTick(q){
+  const now=Date.now(),bucket=Math.floor(now/300000)*300;
+  if(!live||live.time!==bucket){
+   const prev=live?live.close:(candles.length?candles[candles.length-1].close:q.price);
+   live={time:bucket,open:prev,high:q.price,low:q.price,close:q.price};
+  }else{
+   live.high=Math.max(live.high,q.price);live.low=Math.min(live.low,q.price);live.close=q.price;
+  }
+  const base=candles.filter(c=>c.time!==bucket);
+  if(!base.length||base[base.length-1].time<bucket){candles=base.concat([live]).slice(-180)}
+  else {candles=base.map(c=>c.time===bucket?live:c)}
+  lastPrice=q.price;draw();
+ }
+ async function poll(){
+  if(document.hidden)return;
+  try{
+   const r=await fetch("/api/xm-quote",{cache:"no-store"}),q=await r.json();
+   const fresh=r.ok&&q.ok&&finite(Number(q.price))&&Number(q.age)<=20;
+   if(!fresh){
+    stateEl.textContent="WAITING FOR FRESH XM MT5 TICK";stateEl.style.color="#e5a84b";
+    if(badge)badge.textContent="● XM MT5 NOT FRESH";
+    if(footEl)footEl.textContent="Historical chart remains visible; live candle waits for a fresh XM MT5 quote.";
+    return;
+   }
+   const price=Number(q.price);
+   priceEl.textContent="$"+price.toFixed(2);stateEl.textContent="● XM MT5 LIVE · "+Math.max(0,Math.round(Number(q.age)))+"s";stateEl.style.color="#35c98a";
+   if(badge)badge.textContent="● LIVE · XM MT5";
+   applyTick({price,bid:Number(q.bid),ask:Number(q.ask)});
+   if(footEl)footEl.textContent="Live candle + price line: XM MT5 · Historical 5m candles: XAUS reference · "+(q.symbol||"XAUUSD")+" · Bid "+(finite(Number(q.bid))?Number(q.bid).toFixed(2):"—")+" / Ask "+(finite(Number(q.ask))?Number(q.ask).toFixed(2):"—");
+  }catch(e){
+   stateEl.textContent="XM MT5 BRIDGE NOT CONNECTED";stateEl.style.color="#e5a84b";
+   if(badge)badge.textContent="● BRIDGE NOT CONNECTED";
+  }
+ }
+ function draw(){
+  const rect=canvas.getBoundingClientRect(),dpr=Math.max(1,window.devicePixelRatio||1),w=Math.max(320,rect.width),h=Math.max(260,rect.height||420);
+  canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);ctx.fillStyle="#0b1117";ctx.fillRect(0,0,w,h);
+  if(!candles.length){ctx.fillStyle="#9aa8b8";ctx.font="13px sans-serif";ctx.fillText("Waiting for historical candles…",18,32);return}
+  const data=candles.slice(-90),left=14,right=82,top=18,bottom=28,plotW=w-left-right,plotH=h-top-bottom;
+  let min=Math.min(...data.map(x=>x.low)),max=Math.max(...data.map(x=>x.high));
+  if(lastPrice&&finite(lastPrice)){min=Math.min(min,lastPrice);max=Math.max(max,lastPrice)}
+  const pad=(max-min)*.08||1;min-=pad;max+=pad;
+  const y=v=>top+(max-v)/(max-min)*plotH;
+  ctx.strokeStyle="#24313d";ctx.lineWidth=1;ctx.fillStyle="#8d9aaa";ctx.font="10px sans-serif";
+  for(let i=0;i<=5;i++){const yy=top+plotH*i/5,val=max-(max-min)*i/5;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();ctx.fillText(val.toFixed(2),w-right+7,yy+3)}
+  const step=plotW/data.length,cw=Math.max(2,Math.min(9,step*.62));
+  data.forEach((c,i)=>{
+   const x=left+i*step+step/2,up=c.close>=c.open,color=up?"#29c98a":"#ef6262";
+   ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(x,y(c.high));ctx.lineTo(x,y(c.low));ctx.stroke();
+   const yy=Math.min(y(c.open),y(c.close)),hh=Math.max(1,Math.abs(y(c.open)-y(c.close)));
+   ctx.fillRect(x-cw/2,yy,cw,hh);
+  });
+  if(lastPrice&&finite(lastPrice)){
+   const yy=y(lastPrice);ctx.setLineDash([5,4]);ctx.strokeStyle="#f1d18a";ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle="#f1d18a";ctx.fillRect(w-right+3,yy-9,right-7,18);ctx.fillStyle="#111820";ctx.font="bold 10px sans-serif";ctx.fillText(lastPrice.toFixed(2),w-right+7,yy+3);
+  }
+  ctx.fillStyle="#718092";ctx.font="10px sans-serif";ctx.fillText("5m",left,h-8);ctx.fillText("XAUUSD · "+data.length+" bars",Math.max(left+45,w-right-130),h-8);
+ }
+ if(window.ResizeObserver)new ResizeObserver(draw).observe(wrap);
+ window.addEventListener("resize",draw);
+ loadHistory();poll();setInterval(poll,1000);setInterval(loadHistory,300000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
 })();
