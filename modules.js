@@ -108,7 +108,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  if(candleHistoryCard)candleHistoryCard.style.display="none";
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
- panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology. RSI, MACD and EMA are secondary confirmations only. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>SMC Primary Engine · RSI / MACD / EMA confirmations</h2><p class="module-muted">SMC is the primary methodology (70%); all coded technical filters share 30%: EMA, RSI, MACD, ADX, Stochastic, Bollinger Bands, Ichimoku, Supertrend, VWAP, RSI divergence, candle patterns and Fibonacci/OTE. Calculated from validated closed OHLC candles; not a validated trading edge.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
  let activeSignalPlan=null,latestSpotQuote=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
@@ -302,24 +302,40 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const adxStrong=Number.isFinite(adxVal)&&adxVal>=20;
   const vwapBull=vwap!==null&&last.c>vwap,vwapBear=vwap!==null&&last.c<vwap;
   const bbStretchBull=!!bb&&last.c<bb.lower,bbStretchBear=!!bb&&last.c>bb.upper;
-  /* Dynamic weighted confluence: SMC is primary; EMA/RSI/MACD are confirmations only. */
+  /* Full-site confluence: SMC core (70%) + every coded technical filter (30%). */
   const trending=adxStrong||hhhl||lhll;
   const weights=trending
-   ?{structure:20,break:16,liquidity:14,zone:10,fvg:8,sweep:12,value:5,ema:5,rsi:5,macd:5}
-   :{structure:16,break:12,liquidity:16,zone:12,fvg:10,sweep:14,value:10,ema:4,rsi:3,macd:3};
+   ?{structure:14,break:11,liquidity:10,zone:7,fvg:6,sweep:8,value:4,ema:3,rsi:3,macd:4}
+   :{structure:11,break:8,liquidity:11,zone:8,fvg:7,sweep:10,value:7,ema:3,rsi:2,macd:3};
+  const patternBull=/Bullish|Hammer|Morning Star|Three White Soldiers/i.test(pat);
+  const patternBear=/Bearish|Shooting Star|Evening Star|Three Black Crows/i.test(pat);
+  const fibBull=!!fib&&/bull/i.test(fib.direction);
+  const fibBear=!!fib&&/bear/i.test(fib.direction);
+  const bullTech=[
+   [adxStrong&&upTrend,4],[stoch!==null&&stoch>50,3],[bbStretchBull,3],
+   [!!ichi&&last.c>Math.max(ichi.spanA,ichi.spanB)&&ichi.tenkan>ichi.kijun,4],
+   [!!st&&st.direction==="BULLISH",4],[vwapBull,3],[bullDiv,4],[patternBull,3],[fibBull,2]
+  ];
+  const bearTech=[
+   [adxStrong&&downTrend,4],[stoch!==null&&stoch<50,3],[bbStretchBear,3],
+   [!!ichi&&last.c<Math.min(ichi.spanA,ichi.spanB)&&ichi.tenkan<ichi.kijun,4],
+   [!!st&&st.direction==="BEARISH",4],[vwapBear,3],[bearDiv,4],[patternBear,3],[fibBear,2]
+  ];
   const bullFactors=[
    [hhhl,weights.structure],[bosUp||chochUp,weights.break],[sweepLow,weights.liquidity],
    [ob==="Potential Bullish OB",weights.zone],[fvg==="Bullish FVG",weights.fvg],
    [bullSweepShift,weights.sweep],[zone==="DISCOUNT",weights.value],
-   [ema9>ema21,weights.ema],[rsiVal>50,weights.rsi],[macdVal?.hist>0,weights.macd]
+   [ema9>ema21,weights.ema],[rsiVal>50,weights.rsi],[macdVal?.hist>0,weights.macd],
+   ...bullTech
   ];
   const bearFactors=[
    [lhll,weights.structure],[bosDown||chochDown,weights.break],[sweepHigh,weights.liquidity],
    [ob==="Potential Bearish OB",weights.zone],[fvg==="Bearish FVG",weights.fvg],
    [bearSweepShift,weights.sweep],[zone==="PREMIUM",weights.value],
-   [ema9<ema21,weights.ema],[rsiVal<50,weights.rsi],[macdVal?.hist<0,weights.macd]
+   [ema9<ema21,weights.ema],[rsiVal<50,weights.rsi],[macdVal?.hist<0,weights.macd],
+   ...bearTech
   ];
-  const totalWeight=Object.values(weights).reduce((a,b)=>a+b,0);
+  const totalWeight=100;
   const bullish=bullFactors.reduce((n,x)=>n+(x[0]?x[1]:0),0);
   const bearish=bearFactors.reduce((n,x)=>n+(x[0]?x[1]:0),0);
   const direction=bullish>bearish?"BUY BIAS":bearish>bullish?"SELL BIAS":"MIXED";
@@ -508,7 +524,7 @@ render();
 (function(){
  const root=document.querySelector("#strategy");if(!root||root.dataset.catalogReady)return;root.dataset.catalogReady="1";
  const intro=root.querySelector(":scope > .card");
- if(intro)intro.innerHTML='<h2>SMC Strategy Library · XAU/USD</h2><p class="notice">The former mixed strategy catalogue is replaced by a Smart Money Concepts playbook. EMA, RSI and MACD are confirmation filters only.</p>';
+ if(intro)intro.innerHTML='<h2>SMC Strategy Library · XAU/USD</h2><p class="notice">The live confluence engine combines SMC structure/liquidity/zones with every coded technical filter: EMA, RSI, MACD, ADX, Stochastic, Bollinger Bands, Ichimoku, Supertrend, VWAP, RSI divergence, candle patterns and Fibonacci/OTE.</p>';
  const panel=document.createElement("article");panel.className="module-card wide";panel.style.marginTop="14px";
  panel.innerHTML='<h2>Smart Money Concepts · Core setups</h2><div id="smcLibrary" class="module-grid"></div><p class="module-muted" style="margin-top:12px">Educational rule definitions. A detected zone or pattern is not proof of institutional activity and does not independently authorize an order.</p>';
  root.prepend(panel);
