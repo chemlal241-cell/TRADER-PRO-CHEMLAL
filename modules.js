@@ -560,7 +560,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const finalSide=spotNearCandidate?candidate.side:"WAIT";
    const finalReason=spotNearCandidate?("BUY/SELL confirmed by SMC + multi-strategy and macro filters; paper-only."):candidate?"Price moved away from the planned entry; no chasing.":(latestSignalSnapshot?.reason||$("advancedPlan").textContent);
    renderSignalDetails(latestSignalSnapshot,finalSide,finalReason);
-   saveSignalHistory({key:[finalSide,l.last.t,latestSignalSnapshot?.confluence?.toFixed?.(1)||"0"].join("|"),time:Date.now(),candleTime:l.last.t,side:finalSide,trend:latestSignalSnapshot?.trend||bias,confluence:latestSignalSnapshot?.confluence||0,entry:spotNearCandidate?candidate.entry:null,sl:spotNearCandidate?candidate.sl:null,reason:finalReason});
+   saveSignalHistory({key:[finalSide,l.last.t].join("|"),time:Date.now(),candleTime:l.last.t,side:finalSide,trend:latestSignalSnapshot?.trend||bias,confluence:latestSignalSnapshot?.confluence||0,entry:spotNearCandidate?candidate.entry:null,sl:spotNearCandidate?candidate.sl:null,reason:finalReason});
    renderSignalStrength();
    const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=spot.ok?"● SMC DATA CHECKED":"● DATA UNAVAILABLE";
    $("candleMeta").textContent="Source: XAUS /api/v1/chart (XAU series via Yahoo Finance proxy). Refreshed: "+new Date().toLocaleString()+". Last forming candle excluded from indicators.";
