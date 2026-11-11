@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
     const b = req.body || {};
     const symbol = String(b.symbol || "").toUpperCase();
     const bid = Number(b.bid), ask = Number(b.ask), time = Number(b.time);
-    if (!/^XAUUSD[a-zA-Z0-9._-]*$/.test(symbol) ||
+    if (!/^(XAUUSD|GOLD)[a-zA-Z0-9._-]*$/.test(symbol) ||
         !Number.isFinite(bid) || !Number.isFinite(ask) ||
         bid <= 0 || ask < bid || !Number.isFinite(time) ||
         Math.abs(Date.now() - time) > 60000) {
