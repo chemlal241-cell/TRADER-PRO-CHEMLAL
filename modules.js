@@ -118,7 +118,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  if(candleHistoryCard)candleHistoryCard.style.display="none";
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
- panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, scheduled macro events and visual chart patterns remain external/manual checks until a verified source or detector is connected.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">News calendar and DXY are not connected. Do not trade through CPI, NFP or FOMC without checking a reliable live calendar. Volume/VWAP are omitted when source volume is missing or synthetic.</p></div>';
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, scheduled macro events and visual chart patterns remain external/manual checks until a verified source or detector is connected.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">DXY, official BLS/Federal Reserve event calendar, COMEX futures volume/VWAP proxy and Gemini review are required for a live AI-reviewed candidate. Missing/stale macro data, missing volume or active event risk forces WAIT.</p></div>';
  let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0,previousValidSpotPrice=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
@@ -298,7 +298,31 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   if(body/range>.85)return "Marubozu-like";
   return "No strong candle pattern";
  }
- function analyzeAdvanced(results){
+ function detectChartPattern(rows,p,atrNow){
+  const hs=p.highs.slice(-3),ls=p.lows.slice(-3),near=Math.max(atrNow*.9,rows[rows.length-1].c*.00025);
+  const slope=a=>a.length<2?0:(a[a.length-1].p-a[0].p)/(a[a.length-1].i-a[0].i||1);
+  const hSlope=slope(hs),lSlope=slope(ls),out={label:"No confirmed automated pattern",direction:null};
+  if(hs.length===3&&ls.length>=2){
+   const shoulder=Math.abs(hs[0].p-hs[2].p)<=near;
+   if(hs[1].p>hs[0].p+near*.5&&hs[1].p>hs[2].p+near*.5&&shoulder)return {label:"Head & Shoulders candidate",direction:"BEARISH"};
+   if(hs[1].p<hs[0].p-near*.5&&hs[1].p<hs[2].p-near*.5&&shoulder)return {label:"Inverse Head & Shoulders candidate",direction:"BULLISH"};
+  }
+  if(hs.length===3&&ls.length===3){
+   if(hs[2].p<hs[0].p-near*.2&&ls[2].p>ls[0].p+near*.2)return {label:"Symmetrical Triangle candidate",direction:null};
+   const narrowing=Math.abs(hs[2].p-ls[2].p)<Math.abs(hs[0].p-ls[0].p);
+   if(narrowing&&hSlope<0&&lSlope<0)return {label:"Falling Wedge candidate",direction:"BULLISH"};
+   if(narrowing&&hSlope>0&&lSlope>0)return {label:"Rising Wedge candidate",direction:"BEARISH"};
+   if(Math.abs(hSlope)<near/rows.length&&lSlope>0)return {label:"Ascending Triangle candidate",direction:"BULLISH"};
+   if(Math.abs(lSlope)<near/rows.length&&hSlope<0)return {label:"Descending Triangle candidate",direction:"BEARISH"};
+  }
+  const pole=rows.slice(-12,-6),flag=rows.slice(-6);
+  if(pole.length===6&&flag.length===6){
+   const move=pole[5].c-pole[0].o,flagRange=Math.max(...flag.map(x=>x.h))-Math.min(...flag.map(x=>x.l)),drift=flag[5].c-flag[0].o;
+   if(Math.abs(move)>atrNow*2.2&&flagRange<Math.abs(move)*.7&&Math.sign(drift)!==Math.sign(move))return {label:"Flag candidate",direction:move>0?"BULLISH":"BEARISH"};
+  }
+  return out;
+ }
+ function analyzeAdvanced(results,macro){
   const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
   if(!h||!m||!l)return;
   const rows=m.rows,cl=rows.map(x=>x.c),last=rows[rows.length-1],p=pivots(rows),ph=p.highs.slice(-2),pl=p.lows.slice(-2),atrNow=atr(rows,14)||0;
@@ -328,8 +352,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    if(impulse&&next.c<c.l&&c.c>c.o){ob="Potential Bearish OB";obLevel=[c.l,c.h];break}
   }
   const closes=cl,ema9=ema(closes,9),ema21=ema(closes,21),ema50=ema(closes,50),ema200=ema(closes,200),adxVal=adx(rows),stoch=stochastic(rows),bb=bollinger(closes),ichi=ichimoku(rows),st=supertrend(rows),pat=candlePattern(rows);
+  const chartPattern=detectChartPattern(rows,p,atrNow),dxy=macro?.dxy?.data,futures=macro?.goldFutures?.data,macroReady=!!(macro?.calendar?.ok&&macro?.dxy?.ok&&macro?.goldFutures?.ok),eventRisk=macro?.calendar?.activeRisk||null,dxyFresh=!!(dxy&&macro?.dxy?.ok&&dxy.ageSeconds<=1800),dxyBull=dxyFresh&&dxy.changePct<=-.10,dxyBear=dxyFresh&&dxy.changePct>=.10,futuresFresh=!!(futures&&macro?.goldFutures?.ok&&futures.ageSeconds<=1800),volumeConfirmed=futuresFresh&&Number(futures.volumeRatio)>=1.2,futuresVwapBull=futuresFresh&&Number(futures.futuresPrice)>Number(futures.vwap),futuresVwapBear=futuresFresh&&Number(futures.futuresPrice)<Number(futures.vwap);
   const rsiVal=rsi(closes),macdVal=macd(closes);
-  const vwapRows=rows.slice(-48),hasVolume=vwapRows.some(x=>x.v>0),vwap=hasVolume?vwapRows.reduce((a,x)=>a+((x.h+x.l+x.c)/3)*x.v,0)/vwapRows.reduce((a,x)=>a+x.v,0):null,volBase=rows.slice(-21,-1).reduce((a,x)=>a+(x.v||0),0)/20,volumeConfirmed=hasVolume&&volBase>0&&last.v>=volBase*1.2;
+  const vwap=null,hasVolume=false,volBase=0;
   const bullDiv=p.lows.length>=2&&rsiVal!==null&&p.lows[p.lows.length-1].p<p.lows[p.lows.length-2].p&&rsi(closes.slice(0,p.lows[p.lows.length-1].i+1))>rsi(closes.slice(0,p.lows[p.lows.length-2].i+1));
   const bearDiv=p.highs.length>=2&&rsiVal!==null&&p.highs[p.highs.length-1].p>p.highs[p.highs.length-2].p&&rsi(closes.slice(0,p.highs[p.highs.length-1].i+1))<rsi(closes.slice(0,p.highs[p.highs.length-2].i+1));
   const upTrend=hhhl||bosUp||ema9>ema21&&ema21>ema50,downTrend=lhll||bosDown||ema9<ema21&&ema21<ema50;
@@ -350,12 +375,12 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   const bullTech=[
    [adxStrong&&upTrend,4],[stoch!==null&&stoch>50,3],[bbStretchBull,3],
    [!!ichi&&last.c>Math.max(ichi.spanA,ichi.spanB)&&ichi.tenkan>ichi.kijun,4],
-   [!!st&&st.direction==="BULLISH",4],[vwapBull,3],[bullDiv,4],[patternBull,3],[fibBull,2]
+   [!!st&&st.direction==="BULLISH",4],[futuresVwapBull,2],[bullDiv,3],[patternBull,1],[fibBull,1],[chartPattern.direction==="BULLISH",2],[dxyBull,2],[volumeConfirmed,3]
   ];
   const bearTech=[
    [adxStrong&&downTrend,4],[stoch!==null&&stoch<50,3],[bbStretchBear,3],
    [!!ichi&&last.c<Math.min(ichi.spanA,ichi.spanB)&&ichi.tenkan<ichi.kijun,4],
-   [!!st&&st.direction==="BEARISH",4],[vwapBear,3],[bearDiv,4],[patternBear,3],[fibBear,2]
+   [!!st&&st.direction==="BEARISH",4],[futuresVwapBear,2],[bearDiv,3],[patternBear,1],[fibBear,1],[chartPattern.direction==="BEARISH",2],[dxyBear,2],[volumeConfirmed,3]
   ];
   const bullFactors=[
    [hhhl,weights.structure],[bosUp||chochUp,weights.break],[sweepLow,weights.liquidity],
@@ -405,7 +430,11 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ["Closed-candle trigger",pat,"Pattern must occur at a meaningful SMC zone and be confirmed on candle close"],
    ["Support / Resistance","Flip "+(srFlipUp?"resistance → support":srFlipDown?"support → resistance":"not confirmed"),"Round levels "+roundLevels.map(fmt).join(" / ")],
    ["Chart patterns",patternText,"Double top/bottom candidates use equal swings; triangle, wedge, flag and head & shoulders require visual confirmation"],
-   ["Sessions · News · DXY","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"CPI / NFP / FOMC calendar and live DXY are not connected; verify externally before entry"]
+   ["Automated chart patterns",chartPattern.label+" · "+(chartPattern.direction||"neutral / wait"),"H&S, inverse H&S, triangles, wedges and flags are algorithmic candidates; confirm breakout on chart"],
+   ["DXY · US Dollar Index",dxyFresh?fmt(dxy.price)+" · "+(dxy.changePct>0?"+":"")+fmt(dxy.changePct)+"% day":"DXY unavailable / stale","Inverse gold context: "+(dxyBull?"USD weakness supports gold":dxyBear?"USD strength pressures gold":"neutral / no directional edge")],
+   ["COMEX volume · futures VWAP",futuresFresh?"Volume ratio "+fmt(futures.volumeRatio)+"× · futures VWAP "+fmt(futures.vwap):"COMEX volume unavailable / stale","GC=F real futures volume proxy, not XAU spot volume. Confirmation "+(volumeConfirmed?"passed":"not passed")],
+   ["Official event risk",eventRisk?eventRisk.type+" · "+eventRisk.title:"No CPI/NFP/FOMC release inside blackout window","Calendar "+(macro?.calendar?.ok?"BLS + Federal Reserve verified":"not verified")+" · "+(macro?.updatedAt||"source unavailable")],
+   ["Sessions","London "+(londonOn?"OPEN":"closed")+" · New York "+(nyOn?"OPEN":"closed"),"Sessions are context only; event blackout overrides technical setups"]
   ];
   const host=$("advancedRows");host.innerHTML="";
   const table=document.createElement("table");table.className="module-table";
@@ -423,9 +452,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    ?(zone==="DISCOUNT"||fvgLevel&&fvg==="Bullish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bullish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1])
    :(zone==="PREMIUM"||fvgLevel&&fvg==="Bearish FVG"&&last.c>=fvgLevel[0]&&last.c<=fvgLevel[1]||obLevel&&ob==="Potential Bearish OB"&&last.c>=obLevel[0]&&last.c<=obLevel[1]);
   const entryConfirmed=!!(side&&structureTrigger&&zoneConfirmed&&(side==="BUY"?candleBull:candleBear));
-  const candidate=!!(side&&entryConfirmed&&confluencePct>=60&&separation>=12&&aligned&&risk>0&&atrNow>0&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
-  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" · ENTRY CONFIRMED · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · Dynamic confluence "+confluencePct.toFixed(1)+"% · SMC trigger + zone + closed candle + 1h/15m alignment + ≥60% confluence · R:R 1:1 / 1:2 / 1:3 · Win rate not validated.":"WAIT · dynamic confluence "+confluencePct.toFixed(1)+"% · waiting for market-structure break/reclaim, valid SMC zone, directional closed-candle trigger, 1h/15m alignment and clear risk.";
-  return candidate?{side,entry,sl,tp1,tp2,tp3,score:Math.round(score),total:totalWeight,atr:atrNow,time:m.last?.t||last.t}:null;
+  const candidate=!!(side&&entryConfirmed&&confluencePct>=60&&separation>=12&&aligned&&macroReady&&!eventRisk&&volumeConfirmed&&dxyFresh&&risk>0&&atrNow>0&&[entry,sl,tp1,tp2,tp3].every(Number.isFinite));
+  $("advancedPlan").textContent=candidate?"PAPER-ONLY "+side+" · ENTRY CONFIRMED · Entry "+fmt(entry)+" · SL "+fmt(sl)+" · TP1 "+fmt(tp1)+" · TP2 "+fmt(tp2)+" · TP3 "+fmt(tp3)+" · Dynamic confluence "+confluencePct.toFixed(1)+"% · SMC trigger + zone + closed candle + 1h/15m alignment + ≥60% confluence · R:R 1:1 / 1:2 / 1:3 · Win rate not validated.":"WAIT · dynamic confluence "+confluencePct.toFixed(1)+"% · waiting for structure, SMC zone, closed-candle trigger, 1h/15m alignment, verified DXY + official calendar, fresh COMEX volume/VWAP, no event blackout and clear risk.";
+  return candidate?{side,entry,sl,tp1,tp2,tp3,score:Math.round(score),total:totalWeight,atr:atrNow,time:m.last?.t||last.t,macro:{dxy:dxy.price,dxyChangePct:dxy.changePct,volumeRatio:futures.volumeRatio,futuresVwap:futures.vwap,chartPattern:chartPattern.label}}:null;
  }
 
  function showRows(items){
@@ -443,6 +472,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   $("candleReason").textContent="Checking candle coverage, timestamps and indicator inputs.";
   $("candleQuality").textContent="";
   try{
+   const macroPromise=fetch("/api/market-context",{cache:"no-store"}).then(r=>r.json()).catch(()=>null);
    const results=await Promise.all(intervals.map(async tf=>{
     const url="https://xaus.com/api/v1/chart?symbol=xau&range="+tf.range+"&interval="+tf.name;
     const response=await fetch(url,{cache:"no-store"});
@@ -456,7 +486,8 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     return {tf:tf.name,count:closed.length,last,age,ema20:ema(closes,20),ema50:ema(closes,50),rsi:rsi(closes),macd:m,atr:atr(closed),rows:closed};
    }));
    showRows(results);
-   const candidate=analyzeAdvanced(results);
+   const macro=await macroPromise;
+   const candidate=analyzeAdvanced(results,macro);
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
    if(!h||!m||!l||!m.macd)throw new Error("Required timeframes or indicator history are incomplete");
    const up=h.ema20>h.ema50,down=h.ema20<h.ema50;
@@ -471,7 +502,16 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
    const spot=await getFreshSpot();
    const spotNearCandidate=!!(candidate&&spot.ok&&Math.abs(spot.price-candidate.entry)<=Math.max(candidate.atr*.5,spot.price*.0005));
    if(spotNearCandidate){
-    updateLivePanel(candidate.side+" · SMC ENTRY CONFIRMED",candidate.side+" setup passed the SMC entry rules with EMA, RSI and MACD confirmations. Fresh XAUS spot $"+spot.price.toFixed(2)+" USD/oz. Paper-test only.",bias,candidate);
+    const aiResponse=await fetch("/api/ai-review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({analysis:{symbol:"XAUUSD",side:candidate.side,entry:candidate.entry,stopLoss:candidate.sl,targets:[candidate.tp1,candidate.tp2,candidate.tp3],confluence:candidate.score+"/"+candidate.total,timeframes:["5m","15m","1h"],macro:candidate.macro,calendarVerified:!!macro?.calendar?.ok,eventRisk:!!macro?.calendar?.activeRisk,volumeSource:"COMEX GC=F futures volume proxy",volumeConfirmed:!!macro?.goldFutures?.ok}})});
+    const aiData=await aiResponse.json().catch(()=>({ok:false,error:"Invalid AI response"}));
+    if(!aiResponse.ok||!aiData.ok||!aiData.review?.approved){
+     const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent=aiData.configured?"● AI REVIEW BLOCKED":"● AI KEY REQUIRED";
+     updateLivePanel("WAIT · AI REVIEW REQUIRED",aiData.error||aiData.review?.summary||"AI review did not approve this setup. No BUY/SELL signal.",bias);
+     $("advancedPlan").textContent="WAIT · AI review "+(aiData.configured?"rejected or unavailable":"not configured")+". "+(aiData.error||aiData.review?.summary||"Add GEMINI_API_KEY in Vercel to activate the AI review gate.");
+     return;
+    }
+    const aiStatus=root.querySelector("#aiSignalLive");if(aiStatus)aiStatus.textContent="● GEMINI REVIEW PASSED · PAPER ONLY";
+    updateLivePanel(candidate.side+" · AI REVIEWED",candidate.side+" setup passed deterministic rules and Gemini risk review. Fresh spot $"+spot.price.toFixed(2)+" USD/oz. Paper-test only.",bias,candidate);
    }else if(candidate){
     updateLivePanel("WAIT · PRICE MOVED","A "+candidate.side+" SMC setup was detected, but current spot is too far from its candle entry. Wait for a new closed-candle setup; no chasing.",bias);
    }else if(spot.ok){
