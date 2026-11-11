@@ -118,7 +118,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
  if(candleHistoryCard)candleHistoryCard.style.display="none";
  const candleQuality=panel.querySelector("#candleQuality");if(candleQuality)candleQuality.style.display="none";
  const $=id=>panel.querySelector("#"+id);
- panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, scheduled macro events and visual chart patterns remain external/manual checks until a verified source or detector is connected.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">DXY, official BLS/Federal Reserve event calendar, COMEX futures volume/VWAP proxy and external AI review are required for a live AI-reviewed candidate. Missing/stale macro data, missing volume or active event risk forces WAIT.</p></div>';
+ panel.innerHTML+='<div class="module-card" style="margin-top:14px"><h2>AI SIGNALS · Multi-Strategy Confluence Engine</h2><p class="module-muted">AI SIGNALS combines weighted SMC (70%) with coded technical confirmations (30%): structure, BOS/CHoCH, liquidity, OB, FVG, premium/discount, EMA, RSI, MACD, ADX, Stochastic, Bollinger, Ichimoku, SuperTrend, VWAP, divergence, candle patterns and Fibonacci/OTE. DXY, official CPI/NFP/FOMC calendar, COMEX futures volume/VWAP proxy and automated pattern candidates are integrated into the rules engine. Chart patterns require confirmed breakouts; missing data forces WAIT.</p><div id="advancedStatus" class="module-result">WAIT · awaiting verified candles</div><div id="advancedRows" class="module-muted" style="margin-top:10px">Advanced analysis will appear after candle validation.</div><div id="advancedPlan" class="module-result" style="margin-top:12px">Entry / SL / TP: WAIT until enough independent confluences are present and the strategy passes out-of-sample validation.</div><p class="module-muted" style="margin-top:10px">DXY, official BLS/Federal Reserve event calendar and COMEX futures volume/VWAP proxy are required for a strategy candidate. No Google or external AI service is connected. Missing/stale macro data, missing volume or active event risk forces WAIT.</p></div>';
  let activeSignalPlan=null,latestSpotQuote=null,latestConfluence=0,previousValidSpotPrice=null;
  function renderSignalStrength(){
   const card=root.querySelector(".ai-signal-card");if(!card)return;
@@ -478,7 +478,6 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   $("candleQuality").textContent="";
   try{
    const macroPromise=fetch("/api/market-context",{cache:"no-store"}).then(r=>r.json()).catch(()=>null);
-   const aiConfigPromise=fetch("/api/ai-review",{cache:"no-store"}).then(r=>r.json()).catch(()=>({configured:false}));
    const results=await Promise.all(intervals.map(async tf=>{
     const url="https://xaus.com/api/v1/chart?symbol=xau&range="+tf.range+"&interval="+tf.name;
     const response=await fetch(url,{cache:"no-store"});
@@ -492,9 +491,7 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
     return {tf:tf.name,count:closed.length,last,age,ema20:ema(closes,20),ema50:ema(closes,50),rsi:rsi(closes),macd:m,atr:atr(closed),rows:closed};
    }));
    showRows(results);
-   const macro=await macroPromise,aiConfig=await aiConfigPromise;
-   const aiBadge=root.querySelector("#aiSignalLive");if(aiBadge)aiBadge.textContent=aiConfig.configured?"●  AI READY":"● GEMINI API KEY REQUIRED";
-   if(!aiConfig.configured)$("advancedPlan").textContent="WAIT · Gemini AI review is not configured. Add GEMINI_API_KEY to Vercel environment variables; no BUY/SELL signal can pass without AI approval.";
+   const macro=await macroPromise;
    const candidate=analyzeAdvanced(results,macro);
    if(!candidate){const blockers=[];if(!macro?.calendar?.ok)blockers.push("official BLS/Fed calendar unavailable");if(!macro?.dxy?.ok)blockers.push("DXY missing or stale");if(!macro?.goldFutures?.ok)blockers.push("COMEX volume/VWAP missing or stale");if(macro?.calendar?.activeRisk)blockers.push("high-impact event blackout active");if(macro?.goldFutures?.data&&Number(macro.goldFutures.data.volumeRatio)<1.2)blockers.push("volume confirmation below 1.2×");$("advancedPlan").textContent="WAIT · "+(blockers.length?blockers.join(" · "):"technical entry conditions not met")+". No trade signal until all required checks pass."}
    const h=results.find(x=>x.tf==="1h"),m=results.find(x=>x.tf==="15m"),l=results.find(x=>x.tf==="5m");
