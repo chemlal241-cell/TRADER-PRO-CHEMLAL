@@ -488,9 +488,9 @@ document.querySelector("#btCalc").onclick=()=>{const vals=document.querySelector
   }finally{loading=false}
  }
  $("candleRefresh").addEventListener("click",()=>load());
- // Spot quote and strength bar refresh every second; closed-candle strategy analysis refreshes every 2 minutes / new candle.
+ // Spot quote and strength bar refresh every 5 seconds; closed-candle strategy analysis refreshes every 2 minutes / new candle.
  load();
- refreshTimer=setInterval(()=>{if(!document.hidden){renderSignalStrength();getFreshSpot()}},1000);
+ refreshTimer=setInterval(()=>{if(!document.hidden){renderSignalStrength();getFreshSpot()}},5000);
  setInterval(()=>{if(!document.hidden&&!loading)load()},120000);
  document.addEventListener("visibilitychange",()=>{if(!document.hidden){getFreshSpot();load()}});
 })();
