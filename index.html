@@ -143,6 +143,9 @@ body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),l
 @media(max-width:900px){.top{display:flex;flex-wrap:wrap;align-items:center}.top-quote{order:3;flex:1 1 100%;align-items:flex-start}.actions{width:100%}.session-note{margin-left:0}}
 @media(max-width:700px){.session-strip{gap:6px}.session-strip>b{width:100%}.session-chip{font-size:9px;padding:6px 8px}.signal-levels{grid-template-columns:repeat(2,minmax(0,1fr))}.signal-levels .metric:last-child{grid-column:1/-1}#marketSessions .module-grid{grid-template-columns:1fr}}
 
+</style>
+<style>
+.ai-signal-card{background:linear-gradient(145deg,#0e281f,#111922)!important;border:1px solid #245c43!important;border-radius:20px!important;padding:20px!important;overflow:hidden}.ai-signal-head{display:flex;justify-content:space-between;align-items:center;color:#cbd5d0;font-size:14px;font-weight:700}.ai-signal-head #aiSignalLive{color:#48c98b;font-size:12px}.ai-signal-main{text-align:center;padding:34px 10px 16px}.ai-signal-main>strong{display:block;font-size:clamp(38px,6vw,58px);letter-spacing:2px;color:#f1d18a;line-height:1.2}.ai-signal-card.is-buy .ai-signal-main>strong{color:#36d486}.ai-signal-card.is-sell .ai-signal-main>strong{color:#ff777d}.ai-confidence{display:flex;justify-content:center;align-items:center;gap:12px;margin:18px auto 8px;max-width:310px}.ai-confidence-track{height:12px;flex:1;background:#242b35;border-radius:20px;overflow:hidden}.ai-confidence-track span{display:block;width:0;height:100%;background:#2bc878;border-radius:20px;transition:width .3s}.ai-confidence b{color:#68d99c;min-width:42px;text-align:left}.ai-signal-main small{color:#84919b;font-size:11px}.ai-level-list{display:grid;gap:8px}.ai-level{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border:1px solid #303640;border-radius:12px;background:#171d26;color:#aeb8c4}.ai-level b{font-variant-numeric:tabular-nums;color:#d6dce4;letter-spacing:1px}.ai-level.stop{background:#291b20;border-color:#61313a}.ai-level.target{background:#123326;border-color:#245c43}.ai-signal-footer{text-align:center;color:#a5afbb;font-size:13px;padding:20px 8px 4px;line-height:1.6}
 </style></head>
 <body>
 <div id="login" class="wrap login card">
@@ -157,8 +160,17 @@ body{background:radial-gradient(ellipse at 50% -20%,#39250d66,transparent 42%),l
  <div class="session-strip"><b>GLOBAL SESSIONS</b><span id="chipTokyo" class="session-chip">● TOKYO · —</span><span id="chipLondon" class="session-chip">● LONDON · —</span><span id="chipNewYork" class="session-chip">● NEW YORK · —</span><span class="session-note">All session times · Morocco</span></div>
  <nav class="tabs"><button class="tab active" data-tab="overview" data-i="live">📊 Live AI</button><button class="tab" data-tab="analysis" data-i="analysis">🖼 Image Analyzer</button><button class="tab" data-tab="tools" data-i="tools">🧰 Tools</button><button class="tab" data-tab="strategy" data-i="strategy">📚 Strategies</button><button class="tab" data-tab="news">🗞 News & Calendar</button></nav>
  <section id="overview" class="grid">
-  <article class="card"><div class="signal"><span class="muted" data-i="currentSignal">CURRENT SIGNAL</span><strong>WAIT</strong><span class="muted" data-i="waitDesc">No live market data — no trade recommendation.</span></div>
-   <div class="metrics signal-levels"><div class="metric"><span>ENTRY</span><b>—</b></div><div class="metric"><span>STOP LOSS</span><b>—</b></div><div class="metric"><span>TP1</span><b>—</b></div><div class="metric"><span>TP2</span><b>—</b></div><div class="metric"><span>TP3</span><b>—</b></div></div>
+  <article class="card ai-signal-card">
+   <div class="ai-signal-head"><span>🎯 SMC SIGNAL</span><span id="aiSignalLive">● DATA CHECK</span></div>
+   <div class="ai-signal-main"><strong id="aiSignalSide">WAIT</strong><div class="ai-confidence"><div class="ai-confidence-track"><span id="aiConfidenceBar"></span></div><b id="aiConfidenceValue">—</b></div><small id="aiConfidenceLabel">Dynamic SMC confluence · not win probability</small></div>
+   <div class="ai-level-list">
+    <div class="ai-level entry"><span>🎯 Entry</span><b id="aiEntry">—</b></div>
+    <div class="ai-level stop"><span>🔴 Stop Loss</span><b id="aiStop">—</b></div>
+    <div class="ai-level target"><span>✅ TP1</span><b id="aiTp1">—</b></div>
+    <div class="ai-level target"><span>✅ TP2</span><b id="aiTp2">—</b></div>
+    <div class="ai-level target"><span>✅ TP3</span><b id="aiTp3">—</b></div>
+   </div>
+   <div class="ai-signal-footer"><span id="aiSignalDescription">Waiting for verified market data and a confirmed entry.</span></div>
   </article>
   <article class="card"><h2 data-i="marketContext">Market context</h2><div class="list"><div><span data-i="trend">Trend</span><b>—</b></div><div><span data-i="volatility">Volatility</span><b>—</b></div><div><span data-i="timeframe">Timeframe</span><b>15m / 1h / 4h</b></div><div><span data-i="confidence">Signal confidence</span><b>—</b></div></div><p class="notice" data-i="contextNote">Context will populate after a trusted market-data feed and signal engine are configured.</p></article>
   <article class="card wide"><h2 data-i="safetyTitle">Risk & signal policy</h2><p class="notice" data-i="safetyText">Signals are informational, not financial advice. This starter project deliberately stays in WAIT mode until live data, tested rules, and a validated signal engine are connected. No automatic orders are sent.</p></article>
